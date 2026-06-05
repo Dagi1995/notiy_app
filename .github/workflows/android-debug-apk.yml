@@ -38,20 +38,18 @@ jobs:
       uses: gradle/gradle-build-action@v2
 
     - name: Verify Gradle Wrapper Files
-      working-directory: ./carer_app
       run: |
         pwd
-        ls -la
-        test -f gradlew || (echo "Missing file: carer_app/gradlew" && exit 1)
-        test -f gradle/wrapper/gradle-wrapper.jar || (echo "Missing file: carer_app/gradle/wrapper/gradle-wrapper.jar" && ls -la gradle/wrapper && exit 1)
-        test -f settings.gradle || (echo "Missing file: carer_app/settings.gradle" && exit 1)
-        test -f app/build.gradle || (echo "Missing file: carer_app/app/build.gradle" && exit 1)
+        ls -la carer_app
+        test -f ./carer_app/gradlew || (echo "Missing file: carer_app/gradlew" && exit 1)
+        test -f ./carer_app/gradle/wrapper/gradle-wrapper.jar || (echo "Missing file: carer_app/gradle/wrapper/gradle-wrapper.jar" && ls -la ./carer_app/gradle/wrapper && exit 1)
+        test -f ./carer_app/settings.gradle || (echo "Missing file: carer_app/settings.gradle" && exit 1)
+        test -f ./carer_app/app/build.gradle || (echo "Missing file: carer_app/app/build.gradle" && exit 1)
 
     - name: Build Carer App APK
-      working-directory: ./carer_app
       run: |
-        chmod +x gradlew
-        ./gradlew assembleDebug --info --stacktrace --no-daemon
+        chmod +x ./carer_app/gradlew
+        ./carer_app/gradlew -p ./carer_app assembleDebug --info --stacktrace --no-daemon
 
     - name: Upload Carer APK Artifact
       uses: actions/upload-artifact@v4
@@ -92,20 +90,18 @@ jobs:
       uses: gradle/gradle-build-action@v2
 
     - name: Verify Gradle Wrapper Files
-      working-directory: ./controller_app
       run: |
         pwd
-        ls -la
-        test -f gradlew || (echo "Missing file: controller_app/gradlew" && exit 1)
-        test -f gradle/wrapper/gradle-wrapper.jar || (echo "Missing file: controller_app/gradle/wrapper/gradle-wrapper.jar" && ls -la gradle/wrapper && exit 1)
-        test -f settings.gradle || (echo "Missing file: controller_app/settings.gradle" && exit 1)
-        test -f app/build.gradle || (echo "Missing file: controller_app/app/build.gradle" && exit 1)
+        ls -la controller_app
+        test -f ./controller_app/gradlew || (echo "Missing file: controller_app/gradlew" && exit 1)
+        test -f ./controller_app/gradle/wrapper/gradle-wrapper.jar || (echo "Missing file: controller_app/gradle/wrapper/gradle-wrapper.jar" && ls -la ./controller_app/gradle/wrapper && exit 1)
+        test -f ./controller_app/settings.gradle || (echo "Missing file: controller_app/settings.gradle" && exit 1)
+        test -f ./controller_app/app/build.gradle || (echo "Missing file: controller_app/app/build.gradle" && exit 1)
 
     - name: Build Controller App APK
-      working-directory: ./controller_app
       run: |
-        chmod +x gradlew
-        ./gradlew assembleDebug --info --stacktrace --no-daemon
+        chmod +x ./controller_app/gradlew
+        ./controller_app/gradlew -p ./controller_app assembleDebug --info --stacktrace --no-daemon
 
     - name: Upload Controller APK Artifact
       uses: actions/upload-artifact@v4
