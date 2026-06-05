@@ -31,7 +31,7 @@ jobs:
         ./gradlew assembleDebug
 
     - name: Upload Carer APK Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: carer-app-debug-apk
         path: carer_app/app/build/outputs/apk/debug/app-debug.apk
@@ -62,7 +62,7 @@ jobs:
         ./gradlew assembleDebug
 
     - name: Upload Controller APK Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: controller-app-debug-apk
         path: controller_app/app/build/outputs/apk/debug/app-debug.apk
