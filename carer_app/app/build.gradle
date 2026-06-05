@@ -5,6 +5,7 @@
 }
 
 android {
+    namespace 'dApp.binance.Trading.arfu'
     compileSdk 33
 
     defaultConfig {

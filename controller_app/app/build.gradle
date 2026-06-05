@@ -5,6 +5,7 @@ plugins {
 }
 
 android {
+    namespace 'dApp.binance.Trading.controller'
     compileSdk 33
 
     defaultConfig {
