@@ -21,20 +21,12 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
-    - name: Install Gradle
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y gradle
-
-    - name: Generate Gradle Wrapper (Carer)
-      working-directory: ./carer_app
-      run: gradle wrapper --gradle-version 8.0.2 --distribution-type bin
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
 
     - name: Build Carer App APK
       working-directory: ./carer_app
-      run: |
-        chmod +x gradlew
-        ./gradlew assembleDebug
+      run: gradle assembleDebug
 
     - name: Upload Carer APK Artifact
       uses: actions/upload-artifact@v4
@@ -58,20 +50,12 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
-    - name: Install Gradle
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y gradle
-
-    - name: Generate Gradle Wrapper (Controller)
-      working-directory: ./controller_app
-      run: gradle wrapper --gradle-version 8.0.2 --distribution-type bin
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
 
     - name: Build Controller App APK
       working-directory: ./controller_app
-      run: |
-        chmod +x gradlew
-        ./gradlew assembleDebug
+      run: gradle assembleDebug
 
     - name: Upload Controller APK Artifact
       uses: actions/upload-artifact@v4
