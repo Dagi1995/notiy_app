@@ -55,7 +55,7 @@ jobs:
     - name: Build Carer App APK
       run: |
         chmod +x ./carer_app/gradlew
-        cd carer_app && ./gradlew assembleDebug --info --stacktrace --no-daemon 2>&1 | tee ../carer-build.log
+        (cd carer_app && ./gradlew assembleDebug --info --stacktrace --no-daemon) 2>&1 | tee carer-build.log
 
     - name: Capture Carer Build Diagnostics
       if: always()
@@ -128,7 +128,7 @@ jobs:
     - name: Build Controller App APK
       run: |
         chmod +x ./controller_app/gradlew
-        cd controller_app && ./gradlew assembleDebug --info --stacktrace --no-daemon 2>&1 | tee ../controller-build.log
+        (cd controller_app && ./gradlew assembleDebug --info --stacktrace --no-daemon) 2>&1 | tee controller-build.log
 
     - name: Capture Controller Build Diagnostics
       if: always()
