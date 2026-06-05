@@ -21,6 +21,11 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
+    - name: Install Android SDK Packages
+      run: |
+        yes | sdkmanager --licenses
+        sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+
     - name: Setup Gradle
       uses: gradle/gradle-build-action@v2
 
@@ -28,7 +33,7 @@ jobs:
       working-directory: ./carer_app
       run: |
         chmod +x gradlew
-        ./gradlew assembleDebug
+        ./gradlew assembleDebug --info --stacktrace --no-daemon
 
     - name: Upload Carer APK Artifact
       uses: actions/upload-artifact@v4
@@ -52,6 +57,11 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
+    - name: Install Android SDK Packages
+      run: |
+        yes | sdkmanager --licenses
+        sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+
     - name: Setup Gradle
       uses: gradle/gradle-build-action@v2
 
@@ -59,7 +69,7 @@ jobs:
       working-directory: ./controller_app
       run: |
         chmod +x gradlew
-        ./gradlew assembleDebug
+        ./gradlew assembleDebug --info --stacktrace --no-daemon
 
     - name: Upload Controller APK Artifact
       uses: actions/upload-artifact@v4
