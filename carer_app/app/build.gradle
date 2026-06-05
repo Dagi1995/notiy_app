@@ -36,14 +36,17 @@ android {
 }
 
 dependencies {
+    // Firebase BOM - ensures all Firebase libraries are compatible
+    implementation platform('com.google.firebase:firebase-bom:32.3.1')
+    
     implementation 'androidx.core:core:1.10.1'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
 
-    // Firebase
-    implementation 'com.google.firebase:firebase-messaging:23.2.1'
-    implementation 'com.google.firebase:firebase-database:20.2.2'
-    implementation 'com.google.firebase:firebase-installations:17.1.1'
+    // Firebase (versions managed by BOM)
+    implementation 'com.google.firebase:firebase-messaging'
+    implementation 'com.google.firebase:firebase-database'
+    implementation 'com.google.firebase:firebase-installations'
 
     // Kotlin
     implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.9.0'
