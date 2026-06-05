@@ -37,6 +37,12 @@ jobs:
     - name: Setup Gradle
       uses: gradle/gradle-build-action@v2
 
+    - name: Create local.properties (Carer)
+      run: |
+        echo "sdk.dir=$ANDROID_HOME" > ./carer_app/local.properties
+        echo "ndk.dir=$ANDROID_HOME/ndk" >> ./carer_app/local.properties
+        cat ./carer_app/local.properties
+
     - name: Verify Gradle Wrapper Files
       run: |
         pwd
@@ -103,6 +109,12 @@ jobs:
 
     - name: Setup Gradle
       uses: gradle/gradle-build-action@v2
+
+    - name: Create local.properties (Controller)
+      run: |
+        echo "sdk.dir=$ANDROID_HOME" > ./controller_app/local.properties
+        echo "ndk.dir=$ANDROID_HOME/ndk" >> ./controller_app/local.properties
+        cat ./controller_app/local.properties
 
     - name: Verify Gradle Wrapper Files
       run: |
