@@ -21,6 +21,10 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
+    - name: Generate Gradle Wrapper (Carer)
+      working-directory: ./carer_app
+      run: gradle wrapper --gradle-version 8.0.2
+
     - name: Build Carer App APK
       working-directory: ./carer_app
       run: |
@@ -48,6 +52,10 @@ jobs:
 
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
+
+    - name: Generate Gradle Wrapper (Controller)
+      working-directory: ./controller_app
+      run: gradle wrapper --gradle-version 8.0.2
 
     - name: Build Controller App APK
       working-directory: ./controller_app
