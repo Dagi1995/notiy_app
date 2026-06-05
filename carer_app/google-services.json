@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "422249094158",
+    "firebase_url": "https://arfu27-c34b3-default-rtdb.firebaseio.com",
+    "project_id": "arfu27-c34b3",
+    "storage_bucket": "arfu27-c34b3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:422249094158:android:dff9c9397d6067276ab05f",
+        "android_client_info": {
+          "package_name": "dApp.binance.Trading.arfu"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD1nV7Firqp28lqHJ_bVvC3aSrJvkC0rDU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
