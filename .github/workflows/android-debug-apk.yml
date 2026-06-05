@@ -12,6 +12,14 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Verify Carer Project Layout
+      run: |
+        test -d carer_app || (echo "Missing directory: carer_app" && exit 1)
+        test -f carer_app/gradlew || (echo "Missing file: carer_app/gradlew" && exit 1)
+        test -f carer_app/gradle/wrapper/gradle-wrapper.jar || (echo "Missing file: carer_app/gradle/wrapper/gradle-wrapper.jar" && exit 1)
+        test -f carer_app/settings.gradle || (echo "Missing file: carer_app/settings.gradle" && exit 1)
+        test -f carer_app/app/build.gradle || (echo "Missing file: carer_app/app/build.gradle" && exit 1)
+
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
@@ -57,6 +65,14 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
+
+    - name: Verify Controller Project Layout
+      run: |
+        test -d controller_app || (echo "Missing directory: controller_app" && exit 1)
+        test -f controller_app/gradlew || (echo "Missing file: controller_app/gradlew" && exit 1)
+        test -f controller_app/gradle/wrapper/gradle-wrapper.jar || (echo "Missing file: controller_app/gradle/wrapper/gradle-wrapper.jar" && exit 1)
+        test -f controller_app/settings.gradle || (echo "Missing file: controller_app/settings.gradle" && exit 1)
+        test -f controller_app/app/build.gradle || (echo "Missing file: controller_app/app/build.gradle" && exit 1)
 
     - name: Set up JDK 17
       uses: actions/setup-java@v4
