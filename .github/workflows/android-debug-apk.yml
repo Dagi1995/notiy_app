@@ -49,7 +49,14 @@ jobs:
     - name: Build Carer App APK
       run: |
         chmod +x ./carer_app/gradlew
-        ./carer_app/gradlew -p ./carer_app assembleDebug --info --stacktrace --no-daemon
+        ./carer_app/gradlew -p ./carer_app assembleDebug --info --stacktrace --no-daemon 2>&1 | tee carer-build.log
+
+    - name: Capture Carer Build Diagnostics
+      if: always()
+      run: |
+        mkdir -p carer_logs
+        cp carer-build.log carer_logs/ || true
+        cp -r carer_app/app/build/reports carer_logs/ 2>/dev/null || echo "No build reports"
 
     - name: Upload Carer APK Artifact
       uses: actions/upload-artifact@v4
@@ -57,6 +64,14 @@ jobs:
         name: carer-app-debug-apk
         path: carer_app/app/build/outputs/apk/debug/app-debug.apk
         retention-days: 30
+
+    - name: Upload Carer Build Diagnostics
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: carer-build-diagnostics
+        path: carer_logs/
+        retention-days: 7
 
   build-controller:
     runs-on: ubuntu-latest
@@ -101,7 +116,14 @@ jobs:
     - name: Build Controller App APK
       run: |
         chmod +x ./controller_app/gradlew
-        ./controller_app/gradlew -p ./controller_app assembleDebug --info --stacktrace --no-daemon
+        ./controller_app/gradlew -p ./controller_app assembleDebug --info --stacktrace --no-daemon 2>&1 | tee controller-build.log
+
+    - name: Capture Controller Build Diagnostics
+      if: always()
+      run: |
+        mkdir -p controller_logs
+        cp controller-build.log controller_logs/ || true
+        cp -r controller_app/app/build/reports controller_logs/ 2>/dev/null || echo "No build reports"
 
     - name: Upload Controller APK Artifact
       uses: actions/upload-artifact@v4
@@ -109,3 +131,11 @@ jobs:
         name: controller-app-debug-apk
         path: controller_app/app/build/outputs/apk/debug/app-debug.apk
         retention-days: 30
+
+    - name: Upload Controller Build Diagnostics
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: controller-build-diagnostics
+        path: controller_logs/
+        retention-days: 7
