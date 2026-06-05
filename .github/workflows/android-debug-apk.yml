@@ -26,7 +26,9 @@ jobs:
 
     - name: Build Carer App APK
       working-directory: ./carer_app
-      run: gradle assembleDebug
+      run: |
+        chmod +x gradlew
+        ./gradlew assembleDebug
 
     - name: Upload Carer APK Artifact
       uses: actions/upload-artifact@v4
@@ -55,7 +57,9 @@ jobs:
 
     - name: Build Controller App APK
       working-directory: ./controller_app
-      run: gradle assembleDebug
+      run: |
+        chmod +x gradlew
+        ./gradlew assembleDebug
 
     - name: Upload Controller APK Artifact
       uses: actions/upload-artifact@v4
