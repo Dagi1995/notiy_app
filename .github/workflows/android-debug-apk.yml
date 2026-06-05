@@ -32,8 +32,12 @@ jobs:
     - name: Verify Gradle Wrapper Files
       working-directory: ./carer_app
       run: |
+        pwd
+        ls -la
         test -f gradlew || (echo "Missing file: carer_app/gradlew" && exit 1)
         test -f gradle/wrapper/gradle-wrapper.jar || (echo "Missing file: carer_app/gradle/wrapper/gradle-wrapper.jar" && ls -la gradle/wrapper && exit 1)
+        test -f settings.gradle || (echo "Missing file: carer_app/settings.gradle" && exit 1)
+        test -f app/build.gradle || (echo "Missing file: carer_app/app/build.gradle" && exit 1)
 
     - name: Build Carer App APK
       working-directory: ./carer_app
@@ -74,8 +78,12 @@ jobs:
     - name: Verify Gradle Wrapper Files
       working-directory: ./controller_app
       run: |
+        pwd
+        ls -la
         test -f gradlew || (echo "Missing file: controller_app/gradlew" && exit 1)
         test -f gradle/wrapper/gradle-wrapper.jar || (echo "Missing file: controller_app/gradle/wrapper/gradle-wrapper.jar" && ls -la gradle/wrapper && exit 1)
+        test -f settings.gradle || (echo "Missing file: controller_app/settings.gradle" && exit 1)
+        test -f app/build.gradle || (echo "Missing file: controller_app/app/build.gradle" && exit 1)
 
     - name: Build Controller App APK
       working-directory: ./controller_app
