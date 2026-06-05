@@ -26,6 +26,12 @@ jobs:
         api-levels: '33'
         build-tools: '33.0.2'
 
+    - name: Verify Gradle Wrapper Files
+      working-directory: ./carer_app
+      run: |
+        test -f gradlew || (echo "Missing file: carer_app/gradlew" && exit 1)
+        test -f gradle/wrapper/gradle-wrapper.jar || (echo "Missing file: carer_app/gradle/wrapper/gradle-wrapper.jar" && ls -la gradle/wrapper && exit 1)
+
     - name: Build APK
       working-directory: ./carer_app
       run: |
