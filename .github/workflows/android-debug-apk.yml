@@ -23,8 +23,8 @@ jobs:
 
     - name: Install Gradle
       run: |
-        apt-get update
-        apt-get install -y gradle
+        sudo apt-get update
+        sudo apt-get install -y gradle
 
     - name: Generate Gradle Wrapper (Carer)
       working-directory: ./carer_app
@@ -60,8 +60,8 @@ jobs:
 
     - name: Install Gradle
       run: |
-        apt-get update
-        apt-get install -y gradle
+        sudo apt-get update
+        sudo apt-get install -y gradle
 
     - name: Generate Gradle Wrapper (Controller)
       working-directory: ./controller_app
