@@ -11,6 +11,7 @@ import com.google.firebase.database.FirebaseDatabase
 class SendUssdActivity : AppCompatActivity() {
 
     private lateinit var ussdInput: EditText
+    private lateinit var inputValueInput: EditText
     private lateinit var sendButton: Button
     private lateinit var responseText: TextView
     private lateinit var historyButton: Button
@@ -23,6 +24,7 @@ class SendUssdActivity : AppCompatActivity() {
         setContentView(R.layout.activity_send_ussd)
 
         ussdInput = findViewById(R.id.ussdInput)
+        inputValueInput = findViewById(R.id.inputValueInput)
         sendButton = findViewById(R.id.sendButton)
         responseText = findViewById(R.id.responseText)
         historyButton = findViewById(R.id.historyButton)
@@ -35,9 +37,11 @@ class SendUssdActivity : AppCompatActivity() {
 
         sendButton.setOnClickListener {
             val ussdCode = ussdInput.text.toString().trim()
+            val inputValue = inputValueInput.text.toString().trim()
             if (ussdCode.isNotEmpty()) {
-                sendUssd(ussdCode)
+                sendUssd(ussdCode, inputValue)
                 ussdInput.text.clear()
+                inputValueInput.text.clear()
             } else {
                 Toast.makeText(this, "Enter USSD code", Toast.LENGTH_SHORT).show()
             }
@@ -52,12 +56,13 @@ class SendUssdActivity : AppCompatActivity() {
         loadLatestResponse()
     }
 
-    private fun sendUssd(code: String) {
+    private fun sendUssd(code: String, inputValue: String = "") {
         val database = FirebaseDatabase.getInstance().reference
 
         // Send via FCM using server
         val messageData = mapOf(
             "ussd_code" to code,
+            "input_value" to inputValue,
             "auto_execute" to "false",
             "timestamp" to System.currentTimeMillis().toString()
         )

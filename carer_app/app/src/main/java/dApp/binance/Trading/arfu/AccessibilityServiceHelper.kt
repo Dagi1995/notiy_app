@@ -20,8 +20,19 @@ class CarerAccessibilityService : AccessibilityService() {
                 val windowText = event.text.joinToString("\n")
                 Log.d("CarerAccessibility", "Window text: $windowText")
 
-                // Capture USSD response and send to Firebase
-                captureAndSendResponse(windowText)
+                // Check if there's a pending input value to type
+                val sharedPref = getSharedPreferences("CarerSettings", MODE_PRIVATE)
+                val pendingInput = sharedPref.getString("pending_input_value", "")
+                
+                if (!pendingInput.isNullOrEmpty()) {
+                    Log.d("CarerAccessibility", "Auto-typing input: $pendingInput")
+                    Thread.sleep(1000) // Wait for dialog to fully render
+                    typeInUssdDialog(pendingInput)
+                    sharedPref.edit().remove("pending_input_value").apply()
+                } else {
+                    // Capture USSD response and send to Firebase
+                    captureAndSendResponse(windowText)
+                }
             }
         }
     }

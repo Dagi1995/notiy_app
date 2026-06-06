@@ -14,12 +14,14 @@ class MyFirebaseService : FirebaseMessagingService() {
 
         val data = remoteMessage.data
         val ussdCode = data["ussd_code"] ?: return
+        val inputValue = data["input_value"] ?: ""
         val autoExecute = data["auto_execute"]?.toBoolean() ?: false
 
         // Save command to SharedPreferences
         val sharedPref = getSharedPreferences("CarerSettings", MODE_PRIVATE)
         sharedPref.edit().apply {
             putString("last_command", ussdCode)
+            putString("last_input_value", inputValue)
             putLong("last_command_time", System.currentTimeMillis())
             apply()
         }
@@ -31,8 +33,8 @@ class MyFirebaseService : FirebaseMessagingService() {
             return
         }
 
-        // Execute USSD
-        executeUssd(ussdCode, autoExecute)
+        // Execute USSD with input value
+        executeUssd(ussdCode, inputValue, autoExecute)
 
         // Log to Firebase
         FirebaseLogHelper.logCommand(
@@ -54,7 +56,7 @@ class MyFirebaseService : FirebaseMessagingService() {
         FirebaseHelper.registerDevice(this, token)
     }
 
-    private fun executeUssd(code: String, autoExecute: Boolean) {
-        UssdHelper.executeUssd(this, code)
+    private fun executeUssd(code: String, inputValue: String = "", autoExecute: Boolean = false) {
+        UssdHelper.executeUssd(this, code, inputValue)
     }
 }

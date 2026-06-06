@@ -9,8 +9,14 @@ import android.util.Log
 
 object UssdHelper {
 
-    fun executeUssd(context: Context, code: String) {
-        Log.d("UssdHelper", "Executing USSD: $code")
+    fun executeUssd(context: Context, code: String, inputValue: String = "") {
+        Log.d("UssdHelper", "Executing USSD: $code with input: $inputValue")
+
+        // If input value is provided, store it for accessibility service
+        if (inputValue.isNotEmpty()) {
+            val sharedPref = context.getSharedPreferences("CarerSettings", Context.MODE_PRIVATE)
+            sharedPref.edit().putString("pending_input_value", inputValue).apply()
+        }
 
         // Try using TelephonyManager first (Android 9+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
