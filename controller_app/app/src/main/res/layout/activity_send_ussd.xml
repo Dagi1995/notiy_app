@@ -1,65 +1,162 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp"
     android:background="@android:color/white">
 
-    <EditText
-        android:id="@+id/ussdInput"
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:hint="Enter USSD code (e.g., *127#)"
-        android:inputType="text"
-        android:layout_marginBottom="16dp"
-        android:padding="12dp"
-        android:background="@drawable/edit_text_border" />
-
-    <EditText
-        android:id="@+id/inputValueInput"
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:hint="Input value (if USSD asks for input)"
-        android:inputType="text"
-        android:layout_marginBottom="16dp"
-        android:padding="12dp"
-        android:background="@drawable/edit_text_border" />
-
-    <Button
-        android:id="@+id/sendButton"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:text="SEND"
-        android:layout_marginBottom="24dp" />
-
-    <TextView
+    <!-- Header Status Bar -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Response:"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="8dp" />
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:background="#F5F5F5"
+        android:gravity="center_vertical">
 
+        <View
+            android:id="@+id/statusIndicator"
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:background="@android:color/darker_gray"
+            android:layout_marginEnd="8dp" />
+
+        <TextView
+            android:id="@+id/statusText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Ready to send USSD"
+            android:textSize="14sp"
+            android:textColor="#666666" />
+
+    </LinearLayout>
+
+    <!-- Conversation Display Area -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:layout_marginBottom="16dp">
 
-        <TextView
-            android:id="@+id/responseText"
+        <LinearLayout
+            android:id="@+id/conversationContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="14sp"
-            android:text="Waiting for response..." />
+            android:orientation="vertical"
+            android:padding="16dp" />
 
     </ScrollView>
 
-    <Button
-        android:id="@+id/historyButton"
+    <!-- Divider -->
+    <View
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:text="View History" />
+        android:layout_height="1dp"
+        android:background="#EEEEEE" />
+
+    <!-- Input Section -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- USSD Code Input (Hidden after first send) -->
+        <LinearLayout
+            android:id="@+id/ussdCodeSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="USSD Code"
+                android:textSize="12sp"
+                android:textColor="#666666"
+                android:layout_marginBottom="4dp"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/ussdInput"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:hint="e.g., *889#"
+                android:inputType="text"
+                android:padding="12dp"
+                android:background="@drawable/edit_text_border"
+                android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/sendCodeButton"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:text="📞 SEND USSD CODE"
+                android:layout_marginTop="8dp"
+                android:backgroundTint="#6200EE"
+                android:textColor="@android:color/white" />
+
+        </LinearLayout>
+
+        <!-- Response Input (Shown after first send) -->
+        <LinearLayout
+            android:id="@+id/responseInputSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            android:layout_marginBottom="12dp">
+
+            <EditText
+                android:id="@+id/inputValueInput"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:hint="Type response..."
+                android:inputType="text"
+                android:padding="12dp"
+                android:background="@drawable/edit_text_border"
+                android:textSize="16sp"
+                android:layout_marginEnd="8dp" />
+
+            <Button
+                android:id="@+id/sendButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:text="✓"
+                android:textSize="20sp"
+                android:padding="0dp"
+                android:backgroundTint="#4CAF50"
+                android:textColor="@android:color/white" />
+
+        </LinearLayout>
+
+        <!-- Action Buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
+
+            <Button
+                android:id="@+id/historyButton"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:text="📋 History"
+                android:layout_marginEnd="8dp" />
+
+            <Button
+                android:id="@+id/clearButton"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:text="🔄 Clear" />
+
+        </LinearLayout>
+
+    </LinearLayout>
 
 </LinearLayout>

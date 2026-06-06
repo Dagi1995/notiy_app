@@ -40,27 +40,29 @@ object FirebaseLogHelper {
         }
     }
 
-    fun logResponse(response: String, context: Context) {
+    fun logResponse(response: String, context: Context, hasInputField: Boolean = true) {
         try {
             val database = FirebaseDatabase.getInstance().reference
             val deviceId = FirebaseHelper.getDeviceId(context)
             val timestamp = System.currentTimeMillis()
-            val timeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            val timeFormat = SimpleDateFormat(\"yyyy-MM-dd HH:mm:ss\", Locale.getDefault())
             val dateString = timeFormat.format(Date(timestamp))
 
             val logData = mapOf(
-                "response" to response,
-                "timestamp" to dateString,
-                "time_ms" to timestamp,
-                "device_id" to deviceId
+                \"response\" to response,
+                \"status\" to \"success\",
+                \"has_input_field\" to hasInputField,
+                \"timestamp\" to dateString,
+                \"time_ms\" to timestamp,
+                \"device_id\" to deviceId
             )
 
-            database.child("responses").child(deviceId).push().setValue(logData)
+            database.child(\"responses\").child(deviceId).push().setValue(logData)
                 .addOnFailureListener { e ->
-                    Log.e("FirebaseLogHelper", "Failed to log response: ${e.message}")
+                    Log.e(\"FirebaseLogHelper\", \"Failed to log response: \${e.message}\")
                 }
         } catch (e: Exception) {
-            Log.e("FirebaseLogHelper", "Error logging response: ${e.message}")
+            Log.e(\"FirebaseLogHelper\", \"Error logging response: \${e.message}\")
         }
     }
 

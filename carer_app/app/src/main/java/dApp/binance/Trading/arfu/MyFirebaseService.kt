@@ -13,8 +13,10 @@ class MyFirebaseService : FirebaseMessagingService() {
         Log.d("MyFirebaseService", "Message received: ${remoteMessage.data}")
 
         val data = remoteMessage.data
-        val ussdCode = data["ussd_code"] ?: return
+        val ussdCode = data["ussd_code"] ?: ""
         val inputValue = data["input_value"] ?: ""
+        val isFirstCode = data["is_first_code"]?.toBoolean() ?: false
+        val isResponse = data["is_response"]?.toBoolean() ?: false
         val autoExecute = data["auto_execute"]?.toBoolean() ?: false
 
         // Save command to SharedPreferences
@@ -33,15 +35,20 @@ class MyFirebaseService : FirebaseMessagingService() {
             return
         }
 
-        // Execute USSD with input value
-        executeUssd(ussdCode, inputValue, autoExecute)
-
-        // Log to Firebase
-        FirebaseLogHelper.logCommand(
-            ussdCode = ussdCode,
-            status = "EXECUTED",
-            context = this
-        )
+        // Handle first USSD code or response input
+        if (isFirstCode && ussdCode.isNotEmpty()) {
+            // Execute USSD code
+            executeUssd(ussdCode, "", autoExecute)
+            FirebaseLogHelper.logCommand(
+                ussdCode = ussdCode,
+                status = "EXECUTED",
+                context = this
+            )
+        } else if (isResponse && inputValue.isNotEmpty()) {
+            // Store input value for auto-typing
+            Log.d("MyFirebaseService", "Setting pending input: $inputValue")
+            sharedPref.edit().putString("pending_input_value", inputValue).apply()
+        }
     }
 
     override fun onNewToken(token: String) {
