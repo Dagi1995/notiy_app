@@ -1,6 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="dApp.binance.Trading.arfu">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -18,7 +17,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.CarerApp">
 
-        <!-- Activities -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -36,7 +34,6 @@
             android:name=".LogViewerActivity"
             android:exported="false" />
 
-        <!-- Firebase Cloud Messaging Service -->
         <service
             android:name=".MyFirebaseService"
             android:exported="false">
@@ -45,12 +42,10 @@
             </intent-filter>
         </service>
 
-        <!-- Carer Foreground Service -->
         <service
             android:name=".CarerService"
             android:exported="false" />
 
-        <!-- Accessibility Service -->
         <service
             android:name=".CarerAccessibilityService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
@@ -63,7 +58,6 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
-        <!-- Boot Receiver -->
         <receiver
             android:name=".BootReceiver"
             android:exported="true">
