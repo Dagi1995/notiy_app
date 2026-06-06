@@ -53,10 +53,7 @@ jobs:
         test -f ./carer_app/app/build.gradle || (echo "Missing file: carer_app/app/build.gradle" && exit 1)
 
     - name: Build Carer App APK
-      run: |
-        chmod +x ./carer_app/gradlew
-        cd carer_app
-        ./gradlew assembleDebug 2>&1 | tee ../carer-build.log
+      run: chmod +x ./carer_app/gradlew && cd carer_app && ./gradlew assembleDebug
 
     - name: Capture Carer Build Diagnostics
       if: always()
@@ -127,10 +124,7 @@ jobs:
         test -f ./controller_app/app/build.gradle || (echo "Missing file: controller_app/app/build.gradle" && exit 1)
 
     - name: Build Controller App APK
-      run: |
-        chmod +x ./controller_app/gradlew
-        cd controller_app
-        ./gradlew assembleDebug 2>&1 | tee ../controller-build.log
+      run: chmod +x ./controller_app/gradlew && cd controller_app && ./gradlew assembleDebug
 
     - name: Capture Controller Build Diagnostics
       if: always()
