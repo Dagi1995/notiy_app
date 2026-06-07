@@ -10,43 +10,60 @@ import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 
 class CarerAccessibilityService : AccessibilityService() {
 
+    private var lastProcessedTime = 0L
+    private var lastProcessedText = ""
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
 
-        // Listen for popup windows (USSD dialogs only)
+        // Debounce: ignore same event within 500ms
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastProcessedTime < 500) {
+            return
+        }
+
+        // Listen for popup windows (USSD dialogs)
         when (event.eventType) {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
             AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED -> {
                 val rootNode = rootInActiveWindow ?: return
                 
-                // Check if this is a USSD dialog (has input field or dialog structure)
-                if (!isUssdDialog(rootNode)) {
-                    Log.d("CarerAccessibility", "Not a USSD dialog, ignoring")
-                    return
-                }
-                
-                // Extract only USSD dialog text
-                val ussdText = extractUssdDialogText(rootNode)
-                if (ussdText.isEmpty()) {
-                    Log.d("CarerAccessibility", "No USSD text found")
-                    return
-                }
-                
-                Log.d("CarerAccessibility", "USSD Dialog detected: $ussdText")
-
-                // Check if there's a pending input value to type
                 val sharedPref = getSharedPreferences("CarerSettings", MODE_PRIVATE)
                 val pendingInput = sharedPref.getString("pending_input_value", "")
                 
+                // PRIORITY 1: If there's pending input, execute it immediately
                 if (!pendingInput.isNullOrEmpty()) {
-                    Log.d("CarerAccessibility", "Auto-typing input: $pendingInput")
-                    Thread.sleep(800) // Wait for dialog to fully render
-                    typeInUssdDialog(pendingInput)
-                    sharedPref.edit().remove("pending_input_value").apply()
-                } else {
-                    // Capture USSD response and send to Firebase
-                    captureAndSendResponse(ussdText)
+                    Log.d("CarerAccessibility", "Found pending input: $pendingInput")
+                    lastProcessedTime = currentTime
+                    try {
+                        Thread.sleep(300)
+                        typeInUssdDialog(pendingInput)
+                        sharedPref.edit().remove("pending_input_value").apply()
+                        Log.d("CarerAccessibility", "Auto-typed successfully")
+                    } catch (e: Exception) {
+                        Log.e("CarerAccessibility", "Error auto-typing: ${e.message}", e)
+                    }
+                    return
                 }
+                
+                // PRIORITY 2: Otherwise, capture response text
+                val ussdText = extractUssdDialogText(rootNode)
+                if (ussdText.isEmpty()) {
+                    Log.d("CarerAccessibility", "No text found in event")
+                    return
+                }
+                
+                // Debounce: skip if same text as last time
+                if (ussdText == lastProcessedText) {
+                    Log.d("CarerAccessibility", "Duplicate text, skipping")
+                    return
+                }
+                
+                lastProcessedText = ussdText
+                lastProcessedTime = currentTime
+                
+                Log.d("CarerAccessibility", "Dialog captured: $ussdText")
+                captureAndSendResponse(ussdText)
             }
         }
     }
@@ -56,28 +73,57 @@ class CarerAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * Check if the current window is a USSD dialog
+     * Check if node has any input-like field (simplified)
      */
-    private fun isUssdDialog(node: AccessibilityNodeInfo): Boolean {
-        // Check for common dialog/AlertDialog patterns
-        val className = node.className.toString()
+    private fun hasAnyInputField(node: AccessibilityNodeInfo): Boolean {
+        // Check current node
+        if (node.isPassword || 
+            node.inputType != 0 || 
+            node.contentDescription?.contains("input", ignoreCase = true) == true) {
+            return true
+        }
         
-        // Common USSD dialog containers
-        val isDialogType = className.contains("AlertDialog") || 
-                          className.contains("Dialog") ||
-                          className.contains("PopupWindow") ||
-                          node.isClickable == false && node.childCount > 0
+        // Check all children
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            if (hasAnyInputField(child)) return true
+        }
         
-        // Must have an input field
-        val hasInput = hasInputField(node)
-        
-        return isDialogType && hasInput
+        return false
     }
 
     /**
-     * Extract only USSD dialog text content (filters out system UI)
+     * Extract dialog text content
      */
-    private fun extractUssdDialogText(node: AccessibilityNodeInfo): String {\n        val dialogTexts = mutableListOf<String>()\n        collectDialogText(node, dialogTexts)\n        return dialogTexts.joinToString("\\n").trim()\n    }\n    \n    /**\n     * Recursively collect text from dialog nodes\n     */\n    private fun collectDialogText(node: AccessibilityNodeInfo, texts: MutableList<String>) {\n        // Skip system UI elements\n        val className = node.className.toString()\n        if (className.contains(\"NavigationBar\") || \n            className.contains(\"StatusBar\") ||\n            className.contains(\"FrameLayout\") && node.childCount == 0) {\n            return\n        }\n        \n        // Add text from this node\n        if (!node.text.isNullOrEmpty() && node.text.toString().length > 2) {\n            texts.add(node.text.toString())\n        }\n        \n        // Recursively process children\n        for (i in 0 until node.childCount) {\n            val child = node.getChild(i) ?: continue\n            collectDialogText(child, texts)\n        }\n    }\n    \n    /**\n     * Check if node or its children have an input field\n     */\n    private fun hasInputField(node: AccessibilityNodeInfo): Boolean {\n        if (node.isPassword || node.inputType == android.text.InputType.TYPE_CLASS_NUMBER) {\n            return true\n        }\n        \n        for (i in 0 until node.childCount) {\n            val child = node.getChild(i) ?: continue\n            if (hasInputField(child)) return true\n        }\n        \n        return false\n    }
+    private fun extractUssdDialogText(node: AccessibilityNodeInfo): String {
+        val allTexts = mutableListOf<String>()
+        
+        // Check if this tree has an input field
+        if (!hasAnyInputField(node)) {
+            Log.d("CarerAccessibility", "No input field found, ignoring")
+            return ""
+        }
+        
+        collectAllText(node, allTexts)
+        return allTexts.joinToString("\n").trim()
+    }
+    
+    /**
+     * Recursively collect all text from tree
+     */
+    private fun collectAllText(node: AccessibilityNodeInfo, texts: MutableList<String>) {
+        // Add non-empty text
+        val nodeText = node.text?.toString()?.trim()
+        if (!nodeText.isNullOrEmpty() && nodeText.length > 1) {
+            texts.add(nodeText)
+        }
+        
+        // Recursively process children
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            collectAllText(child, texts)
+        }
+    }
 
     override fun onServiceConnected() {
         super.onServiceConnected()

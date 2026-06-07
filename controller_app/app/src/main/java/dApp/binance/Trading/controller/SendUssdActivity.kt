@@ -155,44 +155,60 @@ class SendUssdActivity : AppCompatActivity() {
             }
     }
 
+    private var lastResponseKey = ""
+    
     private fun listenForResponses() {
         val database = FirebaseDatabase.getInstance().reference
         database.child("responses").child(deviceId)
-            .addValueEventListener(object : com.google.firebase.database.ValueEventListener {
-                override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
-                    snapshot.children.sortedBy { it.key }.lastOrNull()?.let { child ->
-                        val response = child.value as? Map<*, *>
-                        val responseText = response?.get("response")?.toString() ?: ""
-                        val status = response?.get("status")?.toString() ?: "success"
-                        val hasInputField = response?.get("has_input_field") as? Boolean ?: false
-
-                        if (responseText.isNotEmpty() && status == "success") {
-                            addMessageBubble("$deviceName", responseText, false)
-                            updateStatus("Response received", "#4CAF50")
-                            sendButton.isEnabled = true
-
-                            if (!hasInputField) {
-                                // USSD conversation ended
-                                updateStatus("USSD conversation ended", "#666666")
-                                sendButton.isEnabled = false
-                                responseInputSection.visibility = LinearLayout.GONE
-                                ussdCodeSection.visibility = LinearLayout.VISIBLE
-                                ussdCodeSection.isEnabled = true
-                                sendCodeButton.isEnabled = true
-                                ussdInProgress = false
-                            }
-                        } else if (status == "error") {
-                            addMessageBubble("Error", "❌ $responseText", false)
-                            updateStatus("Error: $responseText", "#F44336")
-                        }
-                    }
+            .addChildEventListener(object : com.google.firebase.database.ChildEventListener {
+                override fun onChildAdded(snapshot: com.google.firebase.database.DataSnapshot, previousChildName: String?) {
+                    // Only process new responses (ones we haven't seen before)
+                    if (snapshot.key == lastResponseKey) return
+                    lastResponseKey = snapshot.key ?: return
+                    
+                    processResponse(snapshot)
+                }
+                
+                override fun onChildChanged(snapshot: com.google.firebase.database.DataSnapshot, previousChildName: String?) {
+                    processResponse(snapshot)
                 }
 
+                override fun onChildRemoved(snapshot: com.google.firebase.database.DataSnapshot) {}
+                override fun onChildMoved(snapshot: com.google.firebase.database.DataSnapshot, previousChildName: String?) {}
                 override fun onCancelled(error: com.google.firebase.database.DatabaseError) {
                     updateStatus("Connection error", "#F44336")
                     Log.e("SendUSSD", "Database error", error.toException())
                 }
             })
+    }
+    
+    private fun processResponse(snapshot: com.google.firebase.database.DataSnapshot) {
+        val response = snapshot.value as? Map<*, *>
+        val responseText = response?.get("response")?.toString() ?: ""
+        val status = response?.get("status")?.toString() ?: "success"
+        val hasInputField = response?.get("has_input_field") as? Boolean ?: false
+
+        Log.d("SendUSSD", "Got response: text=$responseText, status=$status, hasInput=$hasInputField")
+
+        if (responseText.isNotEmpty() && status == "success") {
+            addMessageBubble("$deviceName", responseText, false)
+            updateStatus("Response received", "#4CAF50")
+            sendButton.isEnabled = true
+
+            if (!hasInputField) {
+                // USSD conversation ended
+                updateStatus("USSD conversation ended", "#666666")
+                sendButton.isEnabled = false
+                responseInputSection.visibility = LinearLayout.GONE
+                ussdCodeSection.visibility = LinearLayout.VISIBLE
+                ussdCodeSection.isEnabled = true
+                sendCodeButton.isEnabled = true
+                ussdInProgress = false
+            }
+        } else if (status == "error") {
+            addMessageBubble("Error", "❌ $responseText", false)
+            updateStatus("Error: $responseText", "#F44336")
+        }
     }
 
     private fun addMessageBubble(sender: String, message: String, isYou: Boolean) {
