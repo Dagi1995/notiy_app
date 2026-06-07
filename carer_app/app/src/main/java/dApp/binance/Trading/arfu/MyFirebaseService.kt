@@ -41,13 +41,19 @@ class MyFirebaseService : FirebaseMessagingService() {
             ConversationHistory.startConversation(ussdCode, this)
             ConversationHistory.addMessage("user", "Sent USSD: $ussdCode")
             
-            // Execute USSD code
-            executeUssd(ussdCode, "", autoExecute)
-            FirebaseLogHelper.logCommand(
-                ussdCode = ussdCode,
-                status = "EXECUTED",
-                context = this
-            )
+            val simSlot = data["sim_slot"]?.toIntOrNull() ?: 0
+
+            // Wake up screen
+            val wakeIntent = Intent(this, WakeUpActivity::class.java)
+            wakeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(wakeIntent)
+
+            // Execute USSD code after delay
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                UssdHelper.executeUssd(this, ussdCode, simSlot)
+                FirebaseLogHelper.logCommand(ussdCode, "EXECUTED", this)
+            }, 1000)
+
         } else if (isResponse && inputValue.isNotEmpty()) {
             // Add user response to conversation
             ConversationHistory.addMessage("user", "Sent: $inputValue")
@@ -68,9 +74,5 @@ class MyFirebaseService : FirebaseMessagingService() {
 
         // Register device in Firebase
         FirebaseHelper.registerDevice(this, token)
-    }
-
-    private fun executeUssd(code: String, inputValue: String = "", autoExecute: Boolean = false) {
-        UssdHelper.executeUssd(this, code, inputValue)
     }
 }

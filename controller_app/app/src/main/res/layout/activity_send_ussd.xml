@@ -1,35 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@android:color/white">
+    android:background="#F0F2F5">
 
-    <!-- Header Status Bar -->
+    <!-- Premium Header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp"
-        android:background="#F5F5F5"
+        android:padding="12dp"
+        android:background="@android:color/white"
+        android:elevation="4dp"
         android:gravity="center_vertical">
 
         <View
             android:id="@+id/statusIndicator"
-            android:layout_width="12dp"
-            android:layout_height="12dp"
+            android:layout_width="10dp"
+            android:layout_height="10dp"
             android:background="@android:color/darker_gray"
-            android:layout_marginEnd="8dp" />
+            android:layout_marginEnd="12dp" />
 
-        <TextView
-            android:id="@+id/statusText"
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Ready to send USSD"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/statusText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Checking status..."
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="#333333" />
+
+            <TextView
+                android:id="@+id/detailedStatusText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Accessibility: --- | SIM: ---"
+                android:textSize="11sp"
+                android:textColor="#888888" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/batteryText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="--%"
             android:textSize="14sp"
-            android:textColor="#666666" />
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:layout_marginEnd="4dp" />
+
+        <ImageView
+            android:id="@+id/batteryIcon"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@android:drawable/ic_lock_idle_low_battery" />
 
     </LinearLayout>
 
@@ -37,8 +68,7 @@
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:layout_marginBottom="16dp">
+        android:layout_weight="1">
 
         <LinearLayout
             android:id="@+id/conversationContainer"
@@ -49,114 +79,122 @@
 
     </ScrollView>
 
-    <!-- Divider -->
-    <View
+    <!-- Multi-Step Assistant Chips -->
+    <HorizontalScrollView
+        android:id="@+id/chipScroll"
         android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#EEEEEE" />
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:background="#E9EBEE"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:id="@+id/chipContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" />
+    </HorizontalScrollView>
+
+    <!-- Execution Overlay (Thinking state) -->
+    <LinearLayout
+        android:id="@+id/executionOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:background="#FFF9C4"
+        android:gravity="center"
+        android:visibility="gone">
+        <ProgressBar
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginEnd="12dp" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Grandma's phone is dialing..."
+            android:textColor="#F57F17"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
 
     <!-- Input Section -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="16dp"
+        android:background="@android:color/white">
 
-        <!-- USSD Code Input (Hidden after first send) -->
         <LinearLayout
             android:id="@+id/ussdCodeSection"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginBottom="12dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="USSD Code"
-                android:textSize="12sp"
-                android:textColor="#666666"
-                android:layout_marginBottom="4dp"
-                android:textStyle="bold" />
+            android:orientation="vertical">
 
             <EditText
                 android:id="@+id/ussdInput"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
-                android:hint="e.g., *889#"
+                android:hint="Enter USSD Code (e.g. *127#)"
                 android:inputType="text"
                 android:padding="12dp"
-                android:background="@drawable/edit_text_border"
+                android:background="@android:drawable/edit_text"
                 android:textSize="16sp" />
+
+            <RadioGroup
+                android:id="@+id/simSelector"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="8dp"
+                android:visibility="gone">
+                <RadioButton android:id="@+id/radioSim1" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="SIM 1" />
+                <RadioButton android:id="@+id/radioSim2" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="SIM 2" />
+            </RadioGroup>
 
             <Button
                 android:id="@+id/sendCodeButton"
                 android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:text="📞 SEND USSD CODE"
+                android:layout_height="wrap_content"
+                android:text="SEND INITIAL COMMAND"
                 android:layout_marginTop="8dp"
                 android:backgroundTint="#6200EE"
                 android:textColor="@android:color/white" />
-
         </LinearLayout>
 
-        <!-- Response Input (Shown after first send) -->
         <LinearLayout
             android:id="@+id/responseInputSection"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:visibility="gone"
-            android:layout_marginBottom="12dp">
+            android:visibility="gone">
 
             <EditText
                 android:id="@+id/inputValueInput"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
                 android:layout_weight="1"
-                android:hint="Type response..."
+                android:hint="Type response number..."
                 android:inputType="text"
                 android:padding="12dp"
-                android:background="@drawable/edit_text_border"
-                android:textSize="16sp"
-                android:layout_marginEnd="8dp" />
+                android:background="@android:drawable/edit_text" />
 
             <Button
                 android:id="@+id/sendButton"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:text="✓"
-                android:textSize="20sp"
-                android:padding="0dp"
+                android:text="→"
                 android:backgroundTint="#4CAF50"
                 android:textColor="@android:color/white" />
-
         </LinearLayout>
 
-        <!-- Action Buttons -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:layout_marginTop="8dp">
-
-            <Button
-                android:id="@+id/historyButton"
-                android:layout_width="0dp"
-                android:layout_height="44dp"
-                android:layout_weight="1"
-                android:text="📋 History"
-                android:layout_marginEnd="8dp" />
-
-            <Button
-                android:id="@+id/clearButton"
-                android:layout_width="0dp"
-                android:layout_height="44dp"
-                android:layout_weight="1"
-                android:text="🔄 Clear" />
-
+            <Button android:id="@+id/historyButton" android:layout_width="0dp" android:layout_height="44dp" android:layout_weight="1" android:text="History" android:layout_marginEnd="4dp" />
+            <Button android:id="@+id/clearButton" android:layout_width="0dp" android:layout_height="44dp" android:layout_weight="1" android:text="New Session" />
         </LinearLayout>
-
     </LinearLayout>
-
 </LinearLayout>

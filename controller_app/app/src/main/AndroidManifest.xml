@@ -33,6 +33,14 @@
             android:name=".AddDeviceActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".DeviceDashboardActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".SmsLogsActivity"
+            android:exported="false" />
+
     </application>
 
 </manifest>

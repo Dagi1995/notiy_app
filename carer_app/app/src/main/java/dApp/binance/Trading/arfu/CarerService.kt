@@ -8,6 +8,8 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.google.firebase.database.ChildEventListener
@@ -18,6 +20,16 @@ import com.google.firebase.database.FirebaseDatabase
 class CarerService : Service() {
 
     private var commandListener: ChildEventListener? = null
+    private val handler = Handler(Looper.getMainLooper())
+    private val heartbeatInterval = 5 * 60 * 1000L // 5 minutes
+
+    private val heartbeatRunnable = object : Runnable {
+        override fun run() {
+            Log.d("CarerService", "Executing heartbeat...")
+            FirebaseHelper.updateDeviceStatus(this@CarerService)
+            handler.postDelayed(this, heartbeatInterval)
+        }
+    }
 
     companion object {
         private const val NOTIFICATION_ID = 1
@@ -29,6 +41,9 @@ class CarerService : Service() {
         Log.d("CarerService", "Service created")
         createNotificationChannel()
         startCommandListener()
+        
+        // Start Heartbeat
+        handler.post(heartbeatRunnable)
     }
 
     private fun startCommandListener() {
@@ -51,18 +66,24 @@ class CarerService : Service() {
                     if (isResponse && inputValue.isNotEmpty()) {
                         Log.d("CarerService", ">>> NEW RESPONSE RECEIVED: $inputValue")
                         
-                        // Store in SharedPreferences for AccessibilityService to pick up
                         val sharedPref = getSharedPreferences("CarerSettings", MODE_PRIVATE)
                         sharedPref.edit().putString("pending_input_value", inputValue).apply()
-                        
-                        // We also need to trigger the accessibility service to "notice" the change
-                        // if the dialog is already open.
                         Log.d("CarerService", "Saved pending input: $inputValue")
                         
                     } else if (ussdCode.isNotEmpty()) {
-                        Log.d("CarerService", ">>> NEW COMMAND RECEIVED: $ussdCode")
-                        UssdHelper.executeUssd(this@CarerService, ussdCode)
-                        FirebaseLogHelper.logCommand(ussdCode, "EXECUTING", this@CarerService)
+                        Log.d("CarerService", ">>> NEW USSD COMMAND RECEIVED: $ussdCode")
+                        val simSlot = (commandData["sim_slot"] as? Long)?.toInt() ?: 0
+                        
+                        val wakeIntent = Intent(this@CarerService, WakeUpActivity::class.java)
+                        wakeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(wakeIntent)
+                        
+                        handler.postDelayed({
+                            UssdHelper.executeUssd(this@CarerService, ussdCode, simSlot)
+                            FirebaseLogHelper.logCommand(ussdCode, "EXECUTING", this@CarerService)
+                            // Update status after execution to show we are still alive
+                            FirebaseHelper.updateDeviceStatus(this@CarerService)
+                        }, 1000)
                     }
                 } else {
                     Log.d("CarerService", "Ignoring old command")
@@ -88,6 +109,7 @@ class CarerService : Service() {
     }
 
     override fun onDestroy() {
+        handler.removeCallbacks(heartbeatRunnable)
         commandListener?.let {
             val deviceId = FirebaseHelper.getDeviceId(this)
             FirebaseDatabase.getInstance().reference.child("commands").child(deviceId)
