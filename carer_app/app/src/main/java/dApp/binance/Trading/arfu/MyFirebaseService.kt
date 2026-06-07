@@ -37,6 +37,10 @@ class MyFirebaseService : FirebaseMessagingService() {
 
         // Handle first USSD code or response input
         if (isFirstCode && ussdCode.isNotEmpty()) {
+            // Start new conversation
+            ConversationHistory.startConversation(ussdCode, this)
+            ConversationHistory.addMessage("user", "Sent USSD: $ussdCode")
+            
             // Execute USSD code
             executeUssd(ussdCode, "", autoExecute)
             FirebaseLogHelper.logCommand(
@@ -45,6 +49,9 @@ class MyFirebaseService : FirebaseMessagingService() {
                 context = this
             )
         } else if (isResponse && inputValue.isNotEmpty()) {
+            // Add user response to conversation
+            ConversationHistory.addMessage("user", "Sent: $inputValue")
+            
             // Store input value for auto-typing
             Log.d("MyFirebaseService", "Setting pending input: $inputValue")
             sharedPref.edit().putString("pending_input_value", inputValue).apply()

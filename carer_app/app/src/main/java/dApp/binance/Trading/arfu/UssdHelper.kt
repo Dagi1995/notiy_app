@@ -18,67 +18,22 @@ object UssdHelper {
             sharedPref.edit().putString("pending_input_value", inputValue).apply()
         }
 
-        // Try using TelephonyManager first (Android 9+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            executeTelephonyUssd(context, code)
-        } else {
-            // Fallback to Intent
-            executeIntentUssd(context, code)
-        }
+        // Always use Intent ACTION_CALL to show USSD dialog UI
+        executeIntentUssd(context, code)
     }
 
     /**
-     * Execute USSD using TelephonyManager (Android 9+)
-     */
-    private fun executeTelephonyUssd(context: Context, code: String) {
-        try {
-            val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-            val ussdCode = Uri.fromParts("tel", code, null)
-
-            telephonyManager.sendUssdRequest(
-                ussdCode.toString(),
-                object : TelephonyManager.UssdResponseCallback() {
-                    override fun onReceiveUssdResponse(
-                        telephonyManager: TelephonyManager?,
-                        request: String?,
-                        response: CharSequence?
-                    ) {
-                        Log.d("UssdHelper", "USSD Response: $response")
-                        FirebaseLogHelper.logResponse(response.toString(), context)
-                    }
-
-                    override fun onReceiveUssdResponseFailed(
-                        telephonyManager: TelephonyManager?,
-                        request: String?,
-                        failureCode: Int
-                    ) {
-                        Log.e("UssdHelper", "USSD Failed: $failureCode")
-                        FirebaseLogHelper.logCommand(
-                            ussdCode = code,
-                            status = "FAILED",
-                            context = context,
-                            error = "Failure code: $failureCode"
-                        )
-                    }
-                },
-                null
-            )
-        } catch (e: Exception) {
-            Log.e("UssdHelper", "Error executing USSD: ${e.message}")
-            executeIntentUssd(context, code)
-        }
-    }
-
-    /**
-     * Execute USSD using Intent (fallback)
+     * Execute USSD using Intent ACTION_CALL to display USSD dialog
      */
     private fun executeIntentUssd(context: Context, code: String) {
         try {
             val intent = Intent(Intent.ACTION_CALL)
-            intent.data = Uri.parse("tel:$code")
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            // Properly format USSD code for Intent
+            val ussdUri = Uri.fromParts("tel", code, "#")
+            intent.data = ussdUri
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             context.startActivity(intent)
-            Log.d("UssdHelper", "USSD Intent launched")
+            Log.d("UssdHelper", "USSD Intent launched with code: $code")
         } catch (e: Exception) {
             Log.e("UssdHelper", "Error launching USSD Intent: ${e.message}")
         }
