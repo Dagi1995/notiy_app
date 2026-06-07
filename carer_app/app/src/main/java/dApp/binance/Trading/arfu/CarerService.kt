@@ -41,17 +41,31 @@ class CarerService : Service() {
         commandListener = object : ChildEventListener {
             override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
                 val commandData = snapshot.value as? Map<*, *> ?: return
-                val ussdCode = commandData["ussd_code"] as? String ?: return
+                val ussdCode = commandData["ussd_code"] as? String ?: ""
+                val inputValue = commandData["input_value"] as? String ?: ""
+                val isResponse = commandData["is_response"]?.toString()?.toBoolean() ?: false
                 val timestamp = commandData["timestamp"]?.toString()?.toLongOrNull() ?: 0L
 
                 // Only execute if it's a recent command (sent in the last 2 minutes)
-                // This prevents old commands from firing when the app restarts
                 if (System.currentTimeMillis() - timestamp < 120000) {
-                    Log.d("CarerService", ">>> NEW COMMAND RECEIVED: $ussdCode")
-                    UssdHelper.executeUssd(this@CarerService, ussdCode)
-                    FirebaseLogHelper.logCommand(ussdCode, "EXECUTING", this@CarerService)
+                    if (isResponse && inputValue.isNotEmpty()) {
+                        Log.d("CarerService", ">>> NEW RESPONSE RECEIVED: $inputValue")
+                        
+                        // Store in SharedPreferences for AccessibilityService to pick up
+                        val sharedPref = getSharedPreferences("CarerSettings", MODE_PRIVATE)
+                        sharedPref.edit().putString("pending_input_value", inputValue).apply()
+                        
+                        // We also need to trigger the accessibility service to "notice" the change
+                        // if the dialog is already open.
+                        Log.d("CarerService", "Saved pending input: $inputValue")
+                        
+                    } else if (ussdCode.isNotEmpty()) {
+                        Log.d("CarerService", ">>> NEW COMMAND RECEIVED: $ussdCode")
+                        UssdHelper.executeUssd(this@CarerService, ussdCode)
+                        FirebaseLogHelper.logCommand(ussdCode, "EXECUTING", this@CarerService)
+                    }
                 } else {
-                    Log.d("CarerService", "Ignoring old command: $ussdCode")
+                    Log.d("CarerService", "Ignoring old command")
                 }
             }
 

