@@ -1,18 +1,24 @@
 package dApp.binance.Trading.controller
 
 import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.database.FirebaseDatabase
+import java.text.SimpleDateFormat
+import java.util.*
 
 class ResponseLogActivity : AppCompatActivity() {
 
     private lateinit var logList: RecyclerView
     private lateinit var backButton: Button
     private var deviceId: String = ""
+    private val timelineItems = mutableListOf<TimelineItem>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -23,51 +29,86 @@ class ResponseLogActivity : AppCompatActivity() {
         backButton = findViewById(R.id.backButton)
 
         logList.layoutManager = LinearLayoutManager(this)
-        
         backButton.setOnClickListener { finish() }
 
-        loadLogs()
+        loadUnifiedHistory()
     }
 
-    private fun loadLogs() {
+    private fun loadUnifiedHistory() {
         val database = FirebaseDatabase.getInstance().reference
-        val logs = mutableListOf<Map<String, Any>>()
+        
+        // Listen for both Logs (Sent Commands) and Responses
+        val logsRef = database.child("logs").child(deviceId)
+        val responsesRef = database.child("responses").child(deviceId)
 
-        database.child("responses").child(deviceId).get()
-            .addOnSuccessListener { snapshot ->
-                logs.clear()
-                snapshot.children.forEach { child ->
-                    val log = child.value as? Map<*, *>
-                    if (log != null) {
-                        logs.add(log.mapKeys { it.key.toString() }.mapValues { it.value as Any })
-                    }
-                }
-                logList.adapter = LogAdapter(logs.reversed())
+        val onDataChanged = object : com.google.firebase.database.ValueEventListener {
+            override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
+                // We'll re-fetch everything and merge to ensure correct order
+                refreshTimeline()
             }
+            override fun onCancelled(error: com.google.firebase.database.DatabaseError) {}
+        }
+
+        logsRef.addValueEventListener(onDataChanged)
+        responsesRef.addValueEventListener(onDataChanged)
+    }
+
+    private fun refreshTimeline() {
+        val database = FirebaseDatabase.getInstance().reference
+        val newItems = mutableListOf<TimelineItem>()
+
+        // 1. Get Logs
+        database.child("logs").child(deviceId).get().addOnSuccessListener { logsSnapshot ->
+            logsSnapshot.children.forEach { child ->
+                val data = child.value as? Map<*, *> ?: return@forEach
+                newItems.add(TimelineItem(
+                    text = "Sent: ${data["ussd_code"]}",
+                    timestamp = data["time_ms"] as? Long ?: 0L,
+                    isSent = true
+                ))
+            }
+
+            // 2. Get Responses
+            database.child("responses").child(deviceId).get().addOnSuccessListener { resSnapshot ->
+                resSnapshot.children.forEach { child ->
+                    val data = child.value as? Map<*, *> ?: return@forEach
+                    newItems.add(TimelineItem(
+                        text = "Received: ${data["response"]}",
+                        timestamp = data["time_ms"] as? Long ?: 0L,
+                        isSent = false
+                    ))
+                }
+
+                // 3. Sort and Display
+                newItems.sortByDescending { it.timestamp }
+                timelineItems.clear()
+                timelineItems.addAll(newItems)
+                logList.adapter = TimelineAdapter(timelineItems)
+            }
+        }
     }
 }
 
-class LogAdapter(private val logs: List<Map<String, Any>>) : androidx.recyclerview.widget.RecyclerView.Adapter<LogViewHolder>() {
-    override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): LogViewHolder {
-        val view = android.widget.TextView(parent.context)
-        view.layoutParams = android.view.ViewGroup.LayoutParams(
-            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-        )
-        view.setPadding(16, 8, 16, 8)
-        return LogViewHolder(view)
-    }
+data class TimelineItem(val text: String, val timestamp: Long, val isSent: Boolean)
 
-    override fun onBindViewHolder(holder: LogViewHolder, position: Int) {
-        val log = logs[position]
-        holder.bind(log)
+class TimelineAdapter(private val items: List<TimelineItem>) : RecyclerView.Adapter<TimelineViewHolder>() {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TimelineViewHolder {
+        val view = LayoutInflater.from(parent.context).inflate(android.R.layout.simple_list_item_2, parent, false)
+        return TimelineViewHolder(view)
     }
-
-    override fun getItemCount() = logs.size
+    override fun onBindViewHolder(holder: TimelineViewHolder, position: Int) = holder.bind(items[position])
+    override fun getItemCount() = items.size
 }
 
-class LogViewHolder(private val view: android.widget.TextView) : androidx.recyclerview.widget.RecyclerView.ViewHolder(view) {
-    fun bind(log: Map<String, Any>) {
-        view.text = "${log["timestamp"]}\n${log["response"]}"
+class TimelineViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    fun bind(item: TimelineItem) {
+        val text1 = itemView.findViewById<TextView>(android.R.id.text1)
+        val text2 = itemView.findViewById<TextView>(android.R.id.text2)
+        
+        text1.text = item.text
+        text1.setTextColor(if (item.isSent) android.graphics.Color.BLUE else android.graphics.Color.BLACK)
+        
+        val sdf = SimpleDateFormat("MMM dd, hh:mm:ss a", Locale.getDefault())
+        text2.text = sdf.format(Date(item.timestamp))
     }
 }

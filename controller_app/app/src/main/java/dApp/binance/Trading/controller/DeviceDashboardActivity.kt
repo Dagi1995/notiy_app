@@ -80,16 +80,11 @@ class DeviceDashboardActivity : AppCompatActivity() {
     private fun deleteDevice() {
         val db = FirebaseDatabase.getInstance().reference
         
-        // Remove device from registry
+        // Remove ONLY the device from the active registry (Main List)
+        // We do NOT delete logs, responses, or sms folders to preserve history
         db.child("devices").child(deviceId).removeValue()
         
-        // Clean up related data
-        db.child("commands").child(deviceId).removeValue()
-        db.child("responses").child(deviceId).removeValue()
-        db.child("logs").child(deviceId).removeValue()
-        db.child("sms").child(deviceId).removeValue()
-        
-        Toast.makeText(this, "Device removed successfully", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Device removed from list (History preserved)", Toast.LENGTH_SHORT).show()
         finish() // Go back to main list
     }
 
