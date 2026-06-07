@@ -63,6 +63,10 @@ class CarerService : Service() {
 
                 // Only execute if it's a recent command (sent in the last 2 minutes)
                 if (System.currentTimeMillis() - timestamp < 120000) {
+                    
+                    // Always wake up screen for ANY incoming command/response
+                    wakeScreen()
+
                     if (isResponse && inputValue.isNotEmpty()) {
                         Log.d("CarerService", ">>> NEW RESPONSE RECEIVED: $inputValue")
                         
@@ -73,10 +77,6 @@ class CarerService : Service() {
                     } else if (ussdCode.isNotEmpty()) {
                         Log.d("CarerService", ">>> NEW USSD COMMAND RECEIVED: $ussdCode")
                         val simSlot = (commandData["sim_slot"] as? Long)?.toInt() ?: 0
-                        
-                        val wakeIntent = Intent(this@CarerService, WakeUpActivity::class.java)
-                        wakeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        startActivity(wakeIntent)
                         
                         handler.postDelayed({
                             UssdHelper.executeUssd(this@CarerService, ussdCode, simSlot)
@@ -99,6 +99,13 @@ class CarerService : Service() {
         }
         
         commandsRef.addChildEventListener(commandListener!!)
+    }
+
+    private fun wakeScreen() {
+        Log.d("CarerService", "Triggering WakeUpActivity")
+        val wakeIntent = Intent(this, WakeUpActivity::class.java)
+        wakeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(wakeIntent)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

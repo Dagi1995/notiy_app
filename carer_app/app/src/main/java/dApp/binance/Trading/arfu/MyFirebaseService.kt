@@ -17,7 +17,6 @@ class MyFirebaseService : FirebaseMessagingService() {
         val inputValue = data["input_value"] ?: ""
         val isFirstCode = data["is_first_code"]?.toBoolean() ?: false
         val isResponse = data["is_response"]?.toBoolean() ?: false
-        val autoExecute = data["auto_execute"]?.toBoolean() ?: false
 
         // Save command to SharedPreferences
         val sharedPref = getSharedPreferences("CarerSettings", MODE_PRIVATE)
@@ -34,6 +33,9 @@ class MyFirebaseService : FirebaseMessagingService() {
             Log.d("MyFirebaseService", "Carer service is disabled")
             return
         }
+        
+        // Always wake up screen for ANY incoming command/response
+        wakeScreen()
 
         // Handle first USSD code or response input
         if (isFirstCode && ussdCode.isNotEmpty()) {
@@ -42,11 +44,6 @@ class MyFirebaseService : FirebaseMessagingService() {
             ConversationHistory.addMessage("user", "Sent USSD: $ussdCode")
             
             val simSlot = data["sim_slot"]?.toIntOrNull() ?: 0
-
-            // Wake up screen
-            val wakeIntent = Intent(this, WakeUpActivity::class.java)
-            wakeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            startActivity(wakeIntent)
 
             // Execute USSD code after delay
             android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
@@ -62,6 +59,13 @@ class MyFirebaseService : FirebaseMessagingService() {
             Log.d("MyFirebaseService", "Setting pending input: $inputValue")
             sharedPref.edit().putString("pending_input_value", inputValue).apply()
         }
+    }
+    
+    private fun wakeScreen() {
+        Log.d("MyFirebaseService", "Triggering WakeUpActivity")
+        val wakeIntent = Intent(this, WakeUpActivity::class.java)
+        wakeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(wakeIntent)
     }
 
     override fun onNewToken(token: String) {

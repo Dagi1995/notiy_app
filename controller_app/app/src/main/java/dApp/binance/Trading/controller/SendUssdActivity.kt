@@ -185,17 +185,18 @@ class SendUssdActivity : AppCompatActivity() {
         while (matcher.find()) {
             val option = matcher.group(1) ?: continue
             if (foundOptions.add(option)) {
-                val chip = Button(this).apply {
-                    layoutParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                    ).apply { setMargins(4, 0, 4, 0) }
-                    text = option
-                    textSize = 14f
-                    setBackgroundColor(Color.parseColor("#6200EE"))
-                    setTextColor(Color.WHITE)
-                    setOnClickListener { sendResponse(option) }
-                }
+                val chip = Button(this)
+                val params = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                params.setMargins(4, 0, 4, 0)
+                chip.layoutParams = params
+                chip.text = option
+                chip.textSize = 14f
+                chip.setBackgroundColor(Color.parseColor("#6200EE"))
+                chip.setTextColor(Color.WHITE)
+                chip.setOnClickListener { sendResponse(option) }
                 chipContainer.addView(chip)
             }
         }
