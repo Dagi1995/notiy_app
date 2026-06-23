@@ -1,0 +1,19 @@
+# Auto detect text files and ensure LF line endings for scripts
+* text=auto eol=lf
+
+# Force LF for shell scripts (critical for Linux CI)
+*.sh text eol=lf
+gradlew text eol=lf
+
+# Force LF for gradle files
+*.gradle text eol=lf
+*.properties text eol=lf
+
+# Force LF for workflow files
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Binary files
+*.jar binary
+*.png binary
+*.jpg binary
