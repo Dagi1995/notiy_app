@@ -1,41 +1,22 @@
 {
   "project_info": {
-    "project_number": "119492193205",
-    "firebase_url": "https://controller-e138a-default-rtdb.firebaseio.com",
-    "project_id": "controller-e138a",
-    "storage_bucket": "controller-e138a.firebasestorage.app"
+    "project_number": "506816138430",
+    "firebase_url": "https://notify-app-d734f-default-rtdb.firebaseio.com",
+    "project_id": "notify-app-d734f",
+    "storage_bucket": "notify-app-d734f.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:119492193205:android:c4185ceb01ea0bd20507fc",
+        "mobilesdk_app_id": "1:506816138430:android:360ae7094799d91d5222ef",
         "android_client_info": {
-          "package_name": "dApp.binance.Trading.arfu"
+          "package_name": "com.notification.controller"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCrDlYy1mJXkeD6ind4h1xogLI6IYsksfE"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:119492193205:android:16c4974b1f8873f50507fc",
-        "android_client_info": {
-          "package_name": "dApp.binance.Trading.controller"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCrDlYy1mJXkeD6ind4h1xogLI6IYsksfE"
+          "current_key": "AIzaSyCnyi0fYBL7lgqxQH6dkXjTcWSIGX8cI4c"
         }
       ],
       "services": {

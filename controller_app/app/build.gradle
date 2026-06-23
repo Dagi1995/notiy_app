@@ -4,10 +4,10 @@ id 'org.jetbrains.kotlin.android'
 id 'com.google.gms.google-services'
 }
 android {
-namespace 'dApp.binance.Trading.controller'
+namespace 'com.notification.controller'
 compileSdk 33
 defaultConfig {
-applicationId "dApp.binance.Trading.controller"
+applicationId "com.notification.controller"
 minSdk 23
 targetSdk 33
 versionCode 4

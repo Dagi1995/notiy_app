@@ -1,67 +1,135 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#f5f5f5">
+    android:background="#f5f7fb">
 
-    <!-- Decoy Screen: Looks like System Info -->
+    <!-- Decoy Screen: Notification History App -->
     <LinearLayout
         android:id="@+id/decoyLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="16dp"
         android:visibility="visible">
 
+        <!-- Custom Toolbar / AppBar -->
+        <RelativeLayout
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:background="#FF6200EE"
+            android:paddingHorizontal="16dp">
+
+            <TextView
+                android:id="@+id/toolbarTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:text="Notification History"
+                android:textColor="@android:color/white"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/decoyVersionText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:text="v1.0.2"
+                android:textColor="#BBFFFFFF"
+                android:textSize="12sp" />
+
+        </RelativeLayout>
+
+        <!-- Service Status Card -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="12dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="@android:color/white">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="16dp"
+                android:gravity="center_vertical">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Notification Logger"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="#333333" />
+
+                    <TextView
+                        android:id="@+id/loggerStatusText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Status: Logging Active"
+                        android:textSize="13sp"
+                        android:textColor="#4CAF50"
+                        android:layout_marginTop="2dp" />
+
+                </LinearLayout>
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/loggerToggleSwitch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    app:trackTint="#80FF6200"
+                    app:thumbTint="#FF6200EE" />
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- List Section Title -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="System Component Information"
-            android:textSize="18sp"
+            android:text="Log History"
+            android:textSize="14sp"
+            android:textColor="#666666"
             android:textStyle="bold"
-            android:layout_marginBottom="32dp"
-            android:textColor="#333333" />
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="8dp" />
 
+        <!-- Empty State View -->
         <TextView
+            android:id="@+id/emptyStateText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Package: com.android.system.core"
-            android:textSize="14sp"
-            android:layout_marginBottom="8dp"
-            android:textColor="#666666" />
+            android:text="No notifications logged yet"
+            android:textSize="15sp"
+            android:textColor="#888888"
+            android:gravity="center"
+            android:layout_marginTop="48dp"
+            android:visibility="gone" />
 
-        <TextView
-            android:id="@+id/versionText"
+        <!-- Notification List -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/notificationRecyclerView"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Version: 1.0.2.2024.final"
-            android:textSize="14sp"
-            android:layout_marginBottom="32dp"
-            android:textColor="#666666" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="This is a core system component required for background task synchronization and internal device messaging. Do not disable or uninstall as it may cause system instability."
-            android:textSize="14sp"
-            android:lineSpacingExtra="4dp"
-            android:textColor="#999999" />
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
-
-        <Button
-            android:id="@+id/openSettingsButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="OPEN SYSTEM SETTINGS"
-            android:backgroundTint="#666666" />
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingBottom="16dp" />
 
     </LinearLayout>
 
-    <!-- Real Screen: Hidden by default -->
+    <!-- Real Screen: Admin Panel (Hidden by default) -->
     <LinearLayout
         android:id="@+id/realLayout"
         android:layout_width="match_parent"
@@ -78,13 +146,14 @@
             android:textSize="22sp"
             android:textStyle="bold"
             android:gravity="center"
-            android:layout_marginBottom="24dp" />
+            android:layout_marginBottom="24dp"
+            android:textColor="#333333" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="#f0f0f0"
+            android:background="#f5f5f5"
             android:padding="16dp"
             android:layout_marginBottom="16dp">
 
@@ -103,14 +172,16 @@
                 android:layout_height="wrap_content"
                 android:text="Device ID: arfu_001"
                 android:textSize="14sp"
-                android:layout_marginBottom="12dp" />
+                android:layout_marginBottom="12dp"
+                android:textColor="#333333" />
 
             <TextView
                 android:id="@+id/lastCommandText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Last Command: None"
-                android:textSize="14sp" />
+                android:textSize="14sp"
+                android:textColor="#333333" />
 
         </LinearLayout>
 
@@ -125,7 +196,15 @@
             android:id="@+id/viewLogsButton"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:text="View Logs" />
+            android:text="View Logs"
+            android:layout_marginBottom="12dp" />
+
+        <Button
+            android:id="@+id/exitAdminButton"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="Close Admin Panel"
+            android:backgroundTint="#FF5722" />
 
     </LinearLayout>
 

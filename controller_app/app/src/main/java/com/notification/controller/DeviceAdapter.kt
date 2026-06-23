@@ -1,4 +1,4 @@
-package dApp.binance.Trading.controller
+package com.notification.controller
 
 import android.graphics.Color
 import android.view.LayoutInflater

@@ -1,4 +1,4 @@
-package dApp.binance.Trading.arfu
+package com.notification.historylog
 
 import android.content.Context
 import android.content.Intent
