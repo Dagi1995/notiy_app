@@ -10,7 +10,7 @@ dotenv.config();
 const serviceAccount = require('./serviceAccountKey.json');
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    databaseURL: 'https://arfu27-c34b3-default-rtdb.firebaseio.com'
+    databaseURL: 'https://notify-app-d734f-default-rtdb.firebaseio.com'
 });
 
 const app = express();
