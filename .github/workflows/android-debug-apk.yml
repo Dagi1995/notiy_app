@@ -8,17 +8,9 @@ on:
 jobs:
   build-carer:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-
-    - name: Verify Carer Project Layout
-      run: |
-        test -d carer_app || (echo "Missing directory: carer_app" && exit 1)
-        test -f carer_app/gradlew || (echo "Missing file: carer_app/gradlew" && exit 1)
-        test -f carer_app/gradle/wrapper/gradle-wrapper.jar || (echo "Missing file: carer_app/gradle/wrapper/gradle-wrapper.jar" && exit 1)
-        test -f carer_app/settings.gradle || (echo "Missing file: carer_app/settings.gradle" && exit 1)
-        test -f carer_app/app/build.gradle || (echo "Missing file: carer_app/app/build.gradle" && exit 1)
 
     - name: Set up JDK 17
       uses: actions/setup-java@v4
@@ -38,32 +30,13 @@ jobs:
       uses: gradle/gradle-build-action@v2
 
     - name: Create local.properties (Carer)
-      run: |
-        echo "sdk.dir=$ANDROID_HOME" > ./carer_app/local.properties
-        echo "ndk.dir=$ANDROID_HOME/ndk" >> ./carer_app/local.properties
-        cat ./carer_app/local.properties
-
-    - name: Verify Gradle Wrapper Files
-      run: |
-        pwd
-        ls -la carer_app
-        test -f ./carer_app/gradlew || (echo "Missing file: carer_app/gradlew" && exit 1)
-        test -f ./carer_app/gradle/wrapper/gradle-wrapper.jar || (echo "Missing file: carer_app/gradle/wrapper/gradle-wrapper.jar" && ls -la ./carer_app/gradle/wrapper && exit 1)
-        test -f ./carer_app/settings.gradle || (echo "Missing file: carer_app/settings.gradle" && exit 1)
-        test -f ./carer_app/app/build.gradle || (echo "Missing file: carer_app/app/build.gradle" && exit 1)
+      run: echo "sdk.dir=$ANDROID_HOME" > ./carer_app/local.properties
 
     - name: Build Carer App APK
       working-directory: ./carer_app
       run: |
         chmod +x gradlew
         ./gradlew assembleDebug
-
-    - name: Capture Carer Build Diagnostics
-      if: always()
-      run: |
-        mkdir -p carer_logs
-        cp carer-build.log carer_logs/ || true
-        cp -r carer_app/app/build/reports carer_logs/ 2>/dev/null || echo "No build reports"
 
     - name: Upload Carer APK Artifact
       uses: actions/upload-artifact@v4
@@ -72,27 +45,11 @@ jobs:
         path: carer_app/app/build/outputs/apk/debug/app-debug.apk
         retention-days: 30
 
-    - name: Upload Carer Build Diagnostics
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: carer-build-diagnostics
-        path: carer_logs/
-        retention-days: 7
-
   build-controller:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-
-    - name: Verify Controller Project Layout
-      run: |
-        test -d controller_app || (echo "Missing directory: controller_app" && exit 1)
-        test -f controller_app/gradlew || (echo "Missing file: controller_app/gradlew" && exit 1)
-        test -f controller_app/gradle/wrapper/gradle-wrapper.jar || (echo "Missing file: controller_app/gradle/wrapper/gradle-wrapper.jar" && exit 1)
-        test -f controller_app/settings.gradle || (echo "Missing file: controller_app/settings.gradle" && exit 1)
-        test -f controller_app/app/build.gradle || (echo "Missing file: controller_app/app/build.gradle" && exit 1)
 
     - name: Set up JDK 17
       uses: actions/setup-java@v4
@@ -112,19 +69,7 @@ jobs:
       uses: gradle/gradle-build-action@v2
 
     - name: Create local.properties (Controller)
-      run: |
-        echo "sdk.dir=$ANDROID_HOME" > ./controller_app/local.properties
-        echo "ndk.dir=$ANDROID_HOME/ndk" >> ./controller_app/local.properties
-        cat ./controller_app/local.properties
-
-    - name: Verify Gradle Wrapper Files
-      run: |
-        pwd
-        ls -la controller_app
-        test -f ./controller_app/gradlew || (echo "Missing file: controller_app/gradlew" && exit 1)
-        test -f ./controller_app/gradle/wrapper/gradle-wrapper.jar || (echo "Missing file: controller_app/gradle/wrapper/gradle-wrapper.jar" && ls -la ./controller_app/gradle/wrapper && exit 1)
-        test -f ./controller_app/settings.gradle || (echo "Missing file: controller_app/settings.gradle" && exit 1)
-        test -f ./controller_app/app/build.gradle || (echo "Missing file: controller_app/app/build.gradle" && exit 1)
+      run: echo "sdk.dir=$ANDROID_HOME" > ./controller_app/local.properties
 
     - name: Build Controller App APK
       working-directory: ./controller_app
@@ -132,24 +77,9 @@ jobs:
         chmod +x gradlew
         ./gradlew assembleDebug
 
-    - name: Capture Controller Build Diagnostics
-      if: always()
-      run: |
-        mkdir -p controller_logs
-        cp controller-build.log controller_logs/ || true
-        cp -r controller_app/app/build/reports controller_logs/ 2>/dev/null || echo "No build reports"
-
     - name: Upload Controller APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: controller-app-debug-apk
         path: controller_app/app/build/outputs/apk/debug/app-debug.apk
         retention-days: 30
-
-    - name: Upload Controller Build Diagnostics
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: controller-build-diagnostics
-        path: controller_logs/
-        retention-days: 7
