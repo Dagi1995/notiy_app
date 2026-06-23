@@ -34,7 +34,7 @@ jobs:
 
     - name: Build Carer App APK
       working-directory: ./carer_app
-      run: gradle assembleDebug
+      run: java -classpath gradle/wrapper/gradle-wrapper.jar org.gradle.wrapper.GradleWrapperMain assembleDebug
 
     - name: Upload Carer APK Artifact
       uses: actions/upload-artifact@v4
@@ -71,7 +71,7 @@ jobs:
 
     - name: Build Controller App APK
       working-directory: ./controller_app
-      run: gradle assembleDebug
+      run: java -classpath gradle/wrapper/gradle-wrapper.jar org.gradle.wrapper.GradleWrapperMain assembleDebug
 
     - name: Upload Controller APK Artifact
       uses: actions/upload-artifact@v4
